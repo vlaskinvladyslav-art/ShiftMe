@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Графік 3/3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+
+<!-- PWA: installable as an app icon, works offline, no browser chrome -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14171c">
+<link rel="icon" href="icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Графік 3/3">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Графік <span>3/3</span></h1>
+    <div class="today-date" id="todayDate"></div>
+  </header>
+
+  <div class="cycle-strip" id="cycleStrip"></div>
+
+  <div class="status-card" id="statusCard">
+    <div class="status-label">Сьогодні</div>
+    <div class="status-value" id="statusValue">—</div>
+    <div class="status-sub">
+      <span>Наступна зміна</span>
+      <b id="nextChange">—</b>
+    </div>
+    <div class="status-sub" id="todayEarnRow" style="display:none;">
+      <span>Зароблено сьогодні</span>
+      <b class="money" id="todayEarnValue">0 ₴</b>
+    </div>
+    <div id="trendBadge" class="trend-badge" style="display:none;"></div>
+    <button class="add-earn-btn" id="addEarnToday">+ Записати заробіток за сьогодні</button>
+  </div>
+
+  <div class="cal-nav">
+    <button id="prevMonth">‹</button>
+    <div class="cal-title" id="calTitle"></div>
+    <button id="nextMonth">›</button>
+  </div>
+  <div class="weekdays">
+    <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
+  </div>
+  <div class="cal-grid" id="calGrid"></div>
+
+  <div class="month-total">
+    <span>Заробіток за місяць</span>
+    <b id="monthTotal">0 ₴</b>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch work"></span>Робочий</div>
+    <div class="legend-item"><span class="legend-swatch off"></span>Вихідний</div>
+    <div class="legend-item"><span class="legend-swatch money"></span>Заробіток</div>
+  </div>
+
+  <div class="section-title">Статистика</div>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-label">Всього зароблено</div>
+      <div class="stat-value money" id="statAllTime">0 ₴</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Серія днів <span class="fire">🔥</span></div>
+      <div class="stat-value" id="statStreak">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-label">Рекорд дня</div>
+      <div class="stat-value money" id="statRecord">0 ₴</div>
+      <div class="stat-sub" id="statRecordDate">—</div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-head">
+      <span>Заробіток за останні 14 днів</span>
+      <span class="chart-avg" id="chartAvgLabel">сер. 0 ₴</span>
+    </div>
+    <div id="earningsChart"></div>
+    <div class="chart-legend">
+      <div class="legend-item"><span class="legend-dot above"></span>вище середнього</div>
+      <div class="legend-item"><span class="legend-dot below"></span>нижче середнього</div>
+    </div>
+  </div>
+
+  <div class="product-stats-card">
+    <div class="chart-head"><span>По виробах, за весь час</span></div>
+    <div id="productStats"></div>
+  </div>
+
+  <div class="data-actions">
+    <button class="data-btn" id="exportBtn" type="button">⭳ Експорт JSON</button>
+    <label class="data-btn" for="importFile">⭱ Імпорт JSON</label>
+    <input type="file" id="importFile" accept="application/json" style="display:none;">
+  </div>
+  <div class="data-note" id="dataNote"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-status" id="modalStatus"></div>
+
+    <div class="entry-list" id="entryList"></div>
+    <div class="day-total-row">
+      <span>Разом за день</span>
+      <b id="dayTotal">0 ₴</b>
+    </div>
+
+    <div class="form-label">Виріб</div>
+    <div class="product-choice" id="productChoice"></div>
+
+    <div class="form-label">Кількість, шт</div>
+    <div class="qty-row">
+      <input type="number" inputmode="numeric" id="qtyInput" placeholder="напр. 173" min="0">
+    </div>
+    <div class="preview-line" id="previewLine"></div>
+
+    <button class="submit-btn" id="submitEntry" disabled>Додати запис</button>
+    <div class="save-note" id="saveNote"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
