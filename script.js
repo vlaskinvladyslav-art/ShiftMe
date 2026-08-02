@@ -24,7 +24,7 @@ let viewMonth = now.getMonth();
 // ---------- Earnings logic ----------
 const PRODUCTS = [
   { code: '3115', rate: 7.47 },
-  { code: '4320', rate: 14.10 }
+  { code: '4320', rate: 14.21 }
 ];
 
 const STORAGE_KEY = 'shiftTrackerEarnings';
