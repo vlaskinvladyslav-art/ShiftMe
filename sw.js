@@ -1,6 +1,6 @@
 // Bump this when index.html / style.css / script.js change, so the
 // updated files get re-cached instead of serving stale ones forever.
-const CACHE_NAME = 'grafik-3-3-v1';
+const CACHE_NAME = 'grafik-3-3-v3';
 const CORE_ASSETS = [
   './',
   './index.html',

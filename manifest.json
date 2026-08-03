@@ -1,7 +1,7 @@
 {
-  "name": "Графік 3/3 — облік змін і заробітку",
-  "short_name": "Графік 3/3",
-  "description": "Графік роботи 3/3 з обліком заробітку та статистикою",
+  "name": "ShiftMe — облік змін і заробітку",
+  "short_name": "ShiftMe",
+  "description": "PWA ShiftMe by TioDeNadal",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

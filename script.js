@@ -22,17 +22,44 @@ let viewYear = now.getFullYear();
 let viewMonth = now.getMonth();
 
 // ---------- Earnings logic ----------
-const PRODUCTS = [
+const CORE_PRODUCTS = [
   { code: '3115', rate: 7.47 },
-  { code: '4320', rate: 14.21 }
+  { code: '4320', rate: 14.10 }
 ];
 
 const STORAGE_KEY = 'shiftTrackerEarnings';
 
 let earningsData = {};   // { 'YYYY-MM-DD': [{code, qty, rate, amount}, ...] }
 let dataReady = false;
-let selectedProduct = PRODUCTS[0].code;
+let selectedProduct = CORE_PRODUCTS[0].code;
 let activeDateKey = null; // date currently open in the modal
+
+// ---------- Products: 2 built-in + any the person adds themselves ----------
+// Extra products stay hidden behind a "показати всі" toggle so the modal
+// doesn't get cluttered once someone has added a handful of them.
+const PRODUCTS_KEY = 'shiftTrackerCustomProducts';
+let customProducts = [];        // [{code, rate}]
+let showAllProducts = false;    // toggle inside the entry modal (resets each open)
+let statsShowAllProducts = false; // toggle inside the "По виробах" stats card
+
+function loadCustomProducts() {
+  try {
+    const raw = localStorage.getItem(PRODUCTS_KEY);
+    customProducts = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    customProducts = [];
+  }
+}
+function saveCustomProducts() {
+  try {
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify(customProducts));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function allProducts() { return CORE_PRODUCTS.concat(customProducts); }
+function findProduct(code) { return allProducts().find(p => p.code === code); }
 
 function pad(n) { return String(n).padStart(2, '0'); }
 function dateKey(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
@@ -47,6 +74,37 @@ function fmtMoneyShort(v) {
 function dayTotal(key) {
   const entries = earningsData[key] || [];
   return entries.reduce((s, e) => s + e.amount, 0);
+}
+
+// ---------- Animated number helper ----------
+// Smoothly counts a displayed value from its previous number to the new
+// one instead of just snapping the text, so entering an amount *feels*
+// like it lands rather than just appearing.
+const animFrames = new WeakMap();
+function animateNumber(el, toValue, formatFn) {
+  if (!el) return;
+  const fromValue = parseFloat(el.dataset.rawValue || '0');
+  if (Math.abs(fromValue - toValue) < 0.005) {
+    el.dataset.rawValue = toValue;
+    el.textContent = formatFn(toValue);
+    return;
+  }
+  if (animFrames.has(el)) cancelAnimationFrame(animFrames.get(el));
+  const duration = 500;
+  const start = performance.now();
+  function step(ts) {
+    const t = Math.min(1, (ts - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const current = fromValue + (toValue - fromValue) * eased;
+    el.textContent = formatFn(current);
+    if (t < 1) {
+      animFrames.set(el, requestAnimationFrame(step));
+    } else {
+      el.dataset.rawValue = toValue;
+      el.textContent = formatFn(toValue);
+    }
+  }
+  animFrames.set(el, requestAnimationFrame(step));
 }
 
 // ---------- Persistence ----------
@@ -99,6 +157,7 @@ function importDataFromFile(file) {
       renderToday();
       renderCalendar();
       renderStats();
+      renderGoal();
       note.textContent = 'Дані імпортовано';
     } catch (err) {
       note.textContent = 'Помилка: файл не схожий на коректний бекап';
@@ -147,7 +206,7 @@ function renderToday() {
   const row = document.getElementById('todayEarnRow');
   if (tTotal > 0) {
     row.style.display = 'flex';
-    document.getElementById('todayEarnValue').textContent = fmtMoney(tTotal);
+    animateNumber(document.getElementById('todayEarnValue'), tTotal, fmtMoney);
   } else {
     row.style.display = 'none';
   }
@@ -193,33 +252,12 @@ function renderCalendar() {
     grid.appendChild(cell);
   }
 
-  document.getElementById('monthTotal').textContent = fmtMoney(monthSum);
+  animateNumber(document.getElementById('monthTotal'), monthSum, fmtMoney);
 }
 
 // ---------- Statistics ----------
 function allDatesSorted() {
   return Object.keys(earningsData).filter(k => dayTotal(k) > 0).sort();
-}
-
-function computeStreak() {
-  let d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayKey = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
-  // The day isn't "broken" until it's fully over, so an empty *today*
-  // doesn't reset the streak — we just start counting from yesterday.
-  if (!(dayTotal(todayKey) > 0)) {
-    d.setDate(d.getDate() - 1);
-  }
-  let streak = 0;
-  while (true) {
-    const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
-    if (dayTotal(key) > 0) {
-      streak++;
-      d.setDate(d.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-  return streak;
 }
 
 function computeRecord() {
@@ -239,7 +277,6 @@ function computeAllTimeTotal() {
 
 function computeProductTotals() {
   const totals = {};
-  PRODUCTS.forEach(p => { totals[p.code] = { qty: 0, amount: 0 }; });
   for (const key of Object.keys(earningsData)) {
     (earningsData[key] || []).forEach(e => {
       if (!totals[e.code]) totals[e.code] = { qty: 0, amount: 0 };
@@ -312,7 +349,7 @@ function renderChart(days) {
     const above = d.total >= avg;
     const color = d.total === 0 ? 'var(--line)' : (above ? 'var(--off)' : 'var(--work)');
     const r = isToday ? 4.5 : 3;
-    dots += '<circle cx="' + x + '" cy="' + y.toFixed(1) + '" r="' + r + '" fill="' + color + '"' +
+    dots += '<circle class="chart-dot" cx="' + x + '" cy="' + y.toFixed(1) + '" r="' + r + '" fill="' + color + '"' +
       (isToday ? ' stroke="var(--today-ring)" stroke-width="2"' : '') + '></circle>';
     if (i % 2 === 0 || isToday) {
       labels += '<text x="' + x + '" y="' + (h - 4) + '" text-anchor="middle" class="chart-day-label">' + d.date.getDate() + '</text>';
@@ -322,11 +359,70 @@ function renderChart(days) {
   const svg =
     '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" xmlns="http://www.w3.org/2000/svg">' +
     '<line x1="' + padL + '" y1="' + avgY + '" x2="' + (w - padR) + '" y2="' + avgY + '" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"></line>' +
-    '<polyline points="' + linePts + '" fill="none" stroke="var(--money)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>' +
+    '<polyline id="earningsPolyline" class="chart-line-path" points="' + linePts + '" fill="none" stroke="var(--money)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>' +
     dots + labels +
     '</svg>';
 
   document.getElementById('earningsChart').innerHTML = svg;
+  requestAnimationFrame(() => {
+    const card = document.querySelector('.chart-card');
+    if (card && isInViewport(card)) playChartAnimation();
+  });
+}
+
+// Draws the earnings line in stroke-by-stroke and pops each dot in,
+// either right away (if already on screen) or the moment it scrolls
+// into view — set up once via IntersectionObserver below.
+function isInViewport(el) {
+  const r = el.getBoundingClientRect();
+  return r.top < window.innerHeight * 0.92 && r.bottom > 0;
+}
+
+function playChartAnimation() {
+  const poly = document.getElementById('earningsPolyline');
+  if (poly && poly.getTotalLength) {
+    const length = poly.getTotalLength();
+    poly.style.transition = 'none';
+    poly.style.strokeDasharray = length;
+    poly.style.strokeDashoffset = length;
+    poly.getBoundingClientRect(); // force reflow
+    poly.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(0.22, 0.9, 0.32, 1)';
+    poly.style.strokeDashoffset = '0';
+  }
+  document.querySelectorAll('.chart-dot').forEach((dot, i) => {
+    setTimeout(() => {
+      dot.style.transition = 'opacity 0.35s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      dot.style.opacity = '1';
+      dot.style.transform = 'scale(1)';
+    }, 500 + i * 35);
+  });
+}
+
+let chartObserver;
+function setupChartObserver() {
+  if (chartObserver) return;
+  const card = document.querySelector('.chart-card');
+  if (!card) return;
+  chartObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) playChartAnimation();
+    });
+  }, { threshold: 0.35 });
+  chartObserver.observe(card);
+}
+
+function productStatRowHtml(t) {
+  const pct = t.pct;
+  return (
+    '<div class="product-stat-row">' +
+      '<div class="product-stat-top">' +
+        '<span class="code">' + t.code + '</span>' +
+        '<span class="qty">' + t.qty.toLocaleString('uk-UA') + ' шт</span>' +
+        '<span class="amt">' + fmtMoney(t.amount) + '</span>' +
+      '</div>' +
+      '<div class="product-bar-track"><div class="product-bar-fill" style="width:' + pct + '%"></div></div>' +
+    '</div>'
+  );
 }
 
 function renderProductStats() {
@@ -335,31 +431,36 @@ function renderProductStats() {
   const grandTotal = Object.values(totals).reduce((s, t) => s + t.amount, 0);
 
   if (grandTotal === 0) {
-    wrap.innerHTML = '<div class="stats-empty">Ще немає жодного запису</div>';
+    wrap.innerHTML = '<p class="stats-empty">Ще немає жодного запису</p>';
     return;
   }
 
-  wrap.innerHTML = PRODUCTS.map(p => {
-    const t = totals[p.code] || { qty: 0, amount: 0 };
+  const withPct = (code) => {
+    const t = totals[code] || { qty: 0, amount: 0 };
     const pct = grandTotal > 0 ? Math.round((t.amount / grandTotal) * 100) : 0;
-    return (
-      '<div class="product-stat-row">' +
-        '<div class="product-stat-top">' +
-          '<span class="code">' + p.code + '</span>' +
-          '<span class="qty">' + t.qty.toLocaleString('uk-UA') + ' шт</span>' +
-          '<span class="amt">' + fmtMoney(t.amount) + '</span>' +
-        '</div>' +
-        '<div class="product-bar-track"><div class="product-bar-fill" style="width:' + pct + '%"></div></div>' +
-      '</div>'
-    );
-  }).join('');
+    return { code, qty: t.qty, amount: t.amount, pct };
+  };
+
+  const core = CORE_PRODUCTS.map(p => withPct(p.code));
+  const extraUsed = customProducts
+    .map(p => withPct(p.code))
+    .filter(p => p.amount > 0)
+    .sort((a, b) => b.amount - a.amount);
+
+  const visible = statsShowAllProducts ? core.concat(extraUsed) : core;
+  const hiddenCount = statsShowAllProducts ? 0 : extraUsed.length;
+
+  wrap.innerHTML = visible.map(productStatRowHtml).join('') +
+    (hiddenCount > 0 ? '<button type="button" class="product-stats-toggle" id="productStatsToggle">Показати ще ' + hiddenCount + '</button>' : '');
+
+  const toggleBtn = document.getElementById('productStatsToggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => { statsShowAllProducts = true; renderProductStats(); });
+  }
 }
 
 function renderStats() {
-  document.getElementById('statAllTime').textContent = fmtMoney(computeAllTimeTotal());
-
-  const streak = computeStreak();
-  document.getElementById('statStreak').textContent = streak + (streak === 1 ? ' день' : (streak >= 2 && streak <= 4 ? ' дні' : ' днів'));
+  animateNumber(document.getElementById('statAllTime'), computeAllTimeTotal(), fmtMoney);
 
   const record = computeRecord();
   document.getElementById('statRecord').textContent = fmtMoney(record.amount);
@@ -373,24 +474,237 @@ function renderStats() {
   renderProductStats();
 }
 
+// ---------- Monthly income goal ----------
+const GOALS_KEY = 'shiftTrackerGoals';
+let goalsData = {};
+let goalEditing = false;
+
+function loadGoals() {
+  try {
+    const raw = localStorage.getItem(GOALS_KEY);
+    goalsData = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    goalsData = {};
+  }
+}
+function saveGoals() {
+  try {
+    localStorage.setItem(GOALS_KEY, JSON.stringify(goalsData));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function currentMonthKey() { return now.getFullYear() + '-' + pad(now.getMonth() + 1); }
+
+function countWorkDaysInMonth(y, m) {
+  const days = new Date(y, m + 1, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= days; d++) if (getStatus(y, m, d) === 'work') count++;
+  return count;
+}
+function monthEarnedSoFar(y, m) {
+  const days = new Date(y, m + 1, 0).getDate();
+  let sum = 0;
+  for (let d = 1; d <= days; d++) sum += dayTotal(dateKey(y, m, d));
+  return sum;
+}
+
+// The core "compensation" logic: whatever is left of the goal gets spread
+// evenly across the work days still ahead (today included). Fall behind
+// one day, and the split over the remaining days quietly grows to catch up.
+function computeGoalPlan() {
+  const mk = currentMonthKey();
+  const goal = goalsData[mk];
+  if (!(goal > 0)) return null;
+
+  const y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const totalWorkDays = countWorkDaysInMonth(y, m);
+  const earned = monthEarnedSoFar(y, m);
+  const remaining = Math.max(0, goal - earned);
+  const reached = earned >= goal;
+
+  let workDaysLeft = 0;
+  for (let d = today; d <= daysInMonth; d++) if (getStatus(y, m, d) === 'work') workDaysLeft++;
+
+  const perDayTarget = workDaysLeft > 0 ? remaining / workDaysLeft : 0;
+  const todayIsWork = getStatus(y, m, today) === 'work';
+  const progressPct = goal > 0 ? Math.min(100, (earned / goal) * 100) : 0;
+
+  return { goal, earned, remaining, totalWorkDays, workDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth };
+}
+
+function partsForAmount(amount) {
+  return CORE_PRODUCTS.map(p => ({ code: p.code, qty: Math.ceil(amount / p.rate) }));
+}
+
+function renderGoal() {
+  const card = document.getElementById('goalCard');
+  const plan = computeGoalPlan();
+
+  if (!plan || goalEditing) {
+    const current = plan ? plan.goal : '';
+    card.innerHTML =
+      '<div class="goal-empty">' +
+        (plan ? '' : '<div class="goal-empty-icon"></div>') +
+        '<p class="goal-empty-title">' + (plan ? 'Змінити ціль на ' + monthNames[now.getMonth()] : 'Встанови ціль на місяць') + '</p>' +
+        (plan ? '' : '<p class="goal-empty-sub">Порахуємо, скільки треба заробляти щодня, щоб дійти суми</p>') +
+        '<div class="goal-input-row">' +
+          '<input type="number" id="goalInput" placeholder="напр. 35000" value="' + current + '" min="0">' +
+          '<button id="goalSetBtn">Зберегти</button>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('goalSetBtn').addEventListener('click', () => {
+      const val = parseFloat(document.getElementById('goalInput').value);
+      if (!(val > 0)) return;
+      goalsData[currentMonthKey()] = val;
+      saveGoals();
+      goalEditing = false;
+      renderGoal();
+    });
+    document.getElementById('goalInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('goalSetBtn').click();
+    });
+    return;
+  }
+
+  const parts = partsForAmount(plan.perDayTarget);
+  const partsLine = parts.map(p => p.qty + ' шт (' + p.code + ')').join(' або ');
+
+  let body = '';
+  if (plan.reached) {
+    body =
+      '<p class="goal-reached">🎉 Ціль досягнута! Понад план: +' + fmtMoney(plan.earned - plan.goal) + '</p>';
+  } else {
+    body =
+      '<div class="goal-today">' +
+        '<p class="goal-today-label">Потрібно ' + (plan.todayIsWork ? 'сьогодні' : 'у наступну зміну') + '</p>' +
+        '<p class="goal-today-value' + (plan.todayIsWork ? '' : ' is-off') + '">' +
+          (plan.todayIsWork ? fmtMoney(Math.round(plan.perDayTarget)) : 'Сьогодні вихідний') +
+        '</p>' +
+        (plan.workDaysLeft > 0 ? '<p class="goal-today-parts">≈ <b>' + partsLine + '</b></p>' : '') +
+      '</div>' +
+      '<div class="goal-upcoming" id="goalUpcoming"></div>';
+  }
+
+  card.innerHTML =
+    '<div class="goal-head">' +
+      '<span>Ціль на ' + monthNames[now.getMonth()] + '</span>' +
+      '<div class="goal-head-actions">' +
+        '<button class="goal-icon-btn" id="goalEditBtn" title="Змінити ціль">✎</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="goal-progress-track"><div class="goal-progress-fill' + (plan.reached ? ' reached' : '') + '" id="goalFill"></div></div>' +
+    '<div class="goal-progress-nums"><span><b id="goalEarned">0 ₴</b> / ' + fmtMoney(plan.goal) + '</span><span class="goal-progress-pct" id="goalPct">0%</span></div>' +
+    body +
+    '<button class="goal-remove" id="goalRemoveBtn">Прибрати ціль</button>';
+
+  requestAnimationFrame(() => {
+    document.getElementById('goalFill').style.width = plan.progressPct + '%';
+  });
+  animateNumber(document.getElementById('goalEarned'), plan.earned, fmtMoney);
+  document.getElementById('goalPct').textContent = Math.round(plan.progressPct) + '%';
+
+  document.getElementById('goalEditBtn').addEventListener('click', () => { goalEditing = true; renderGoal(); });
+  document.getElementById('goalRemoveBtn').addEventListener('click', () => {
+    delete goalsData[currentMonthKey()];
+    saveGoals();
+    goalEditing = false;
+    renderGoal();
+  });
+
+  if (!plan.reached && plan.workDaysLeft > 0) {
+    const chipsWrap = document.getElementById('goalUpcoming');
+    let chipsHtml = '';
+    let shown = 0;
+    for (let d = plan.today; d <= plan.daysInMonth && shown < 6; d++) {
+      const isWork = getStatus(plan.y, plan.m, d) === 'work';
+      const isToday = d === plan.today;
+      chipsHtml +=
+        '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + '">' +
+          '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
+          '<p class="chip-val">' + (isWork ? fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴' : 'вих.') + '</p>' +
+        '</div>';
+      shown++;
+    }
+    chipsWrap.innerHTML = chipsHtml;
+  }
+}
+
 // ---------- Modal ----------
 function statusLabel(s) { return s === 'work' ? 'Робочий день' : 'Вихідний'; }
+
+function productTile(p) {
+  const btn = document.createElement('div');
+  btn.className = 'product-btn' + (p.code === selectedProduct ? ' active' : '');
+  btn.innerHTML = '<span class="code">' + p.code + '</span><span class="rate">' + p.rate.toFixed(2) + ' ₴/шт</span>';
+  btn.addEventListener('click', () => { selectedProduct = p.code; renderProductChoice(); updatePreview(); });
+  return btn;
+}
 
 function renderProductChoice() {
   const wrap = document.getElementById('productChoice');
   wrap.innerHTML = '';
-  PRODUCTS.forEach(p => {
-    const btn = document.createElement('div');
-    btn.className = 'product-btn' + (p.code === selectedProduct ? ' active' : '');
-    btn.innerHTML = '<span class="code">' + p.code + '</span><span class="rate">' + p.rate.toFixed(2) + ' ₴/шт</span>';
-    btn.addEventListener('click', () => { selectedProduct = p.code; renderProductChoice(); updatePreview(); });
-    wrap.appendChild(btn);
+
+  CORE_PRODUCTS.forEach(p => wrap.appendChild(productTile(p)));
+
+  if (showAllProducts) {
+    customProducts.forEach(p => wrap.appendChild(productTile(p)));
+  } else if (customProducts.length > 0) {
+    const toggle = document.createElement('div');
+    toggle.className = 'product-btn product-toggle-tile';
+    toggle.innerHTML = '<span class="code">+' + customProducts.length + '</span><span class="rate">показати всі</span>';
+    toggle.addEventListener('click', () => { showAllProducts = true; renderProductChoice(); });
+    wrap.appendChild(toggle);
+  }
+
+  const addTile = document.createElement('div');
+  addTile.className = 'product-btn product-add-tile';
+  addTile.innerHTML = '<span class="code">+</span><span class="rate">додати виріб</span>';
+  addTile.addEventListener('click', openAddProductForm);
+  wrap.appendChild(addTile);
+}
+
+function openAddProductForm() {
+  const wrap = document.getElementById('productChoice');
+  wrap.innerHTML =
+    '<div class="product-add-form">' +
+      '<input type="text" id="newProdCode" placeholder="Код виробу, напр. 5210" maxlength="16">' +
+      '<input type="number" id="newProdRate" placeholder="Ставка, ₴/шт" step="0.01" min="0">' +
+      '<p class="product-add-error" id="productAddError"></p>' +
+      '<div class="product-add-actions">' +
+        '<button type="button" id="newProdCancel">Скасувати</button>' +
+        '<button type="button" id="newProdSave">Додати</button>' +
+      '</div>' +
+    '</div>';
+
+  document.getElementById('newProdCancel').addEventListener('click', renderProductChoice);
+  document.getElementById('newProdSave').addEventListener('click', () => {
+    const code = document.getElementById('newProdCode').value.trim();
+    const rate = parseFloat(document.getElementById('newProdRate').value);
+    const err = document.getElementById('productAddError');
+    if (!code || !(rate > 0)) {
+      err.textContent = 'Вкажи код і ставку більше нуля';
+      return;
+    }
+    if (findProduct(code)) {
+      err.textContent = 'Такий код вже є';
+      return;
+    }
+    customProducts.push({ code, rate });
+    saveCustomProducts();
+    selectedProduct = code;
+    showAllProducts = true;
+    renderProductChoice();
+    updatePreview();
   });
 }
 
 function updatePreview() {
   const qty = parseFloat(document.getElementById('qtyInput').value);
-  const product = PRODUCTS.find(p => p.code === selectedProduct);
+  const product = findProduct(selectedProduct);
   const preview = document.getElementById('previewLine');
   const submitBtn = document.getElementById('submitEntry');
   if (qty > 0 && product) {
@@ -408,13 +722,13 @@ function renderEntryList() {
   const entries = earningsData[activeDateKey] || [];
   list.innerHTML = '';
   if (entries.length === 0) {
-    list.innerHTML = '<div class="empty-note">Ще немає записів за цей день</div>';
+    list.innerHTML = '<p class="empty-note">Ще немає записів за цей день</p>';
   } else {
     entries.forEach((e, idx) => {
       const row = document.createElement('div');
       row.className = 'entry-row';
       row.innerHTML =
-        '<div class="entry-info"><b>' + e.code + '</b> · ' + e.qty + ' шт<span>' + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
+        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
         '<div class="entry-row-right"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
         '<button class="entry-del" data-idx="' + idx + '">✕</button></div>';
       list.appendChild(row);
@@ -431,6 +745,7 @@ function renderEntryList() {
         renderCalendar();
         renderToday();
         renderStats();
+        renderGoal();
       });
     });
   }
@@ -445,6 +760,7 @@ function openModal(y, m, d) {
   document.getElementById('modalStatus').textContent = statusLabel(status) + ' · ' + weekdayNames[dt.getDay()];
   document.getElementById('qtyInput').value = '';
   document.getElementById('saveNote').textContent = '';
+  showAllProducts = false;
   renderProductChoice();
   updatePreview();
   renderEntryList();
@@ -463,7 +779,7 @@ document.getElementById('qtyInput').addEventListener('input', updatePreview);
 
 document.getElementById('submitEntry').addEventListener('click', () => {
   const qty = parseFloat(document.getElementById('qtyInput').value);
-  const product = PRODUCTS.find(p => p.code === selectedProduct);
+  const product = findProduct(selectedProduct);
   if (!(qty > 0) || !product) return;
 
   const amount = Math.round(qty * product.rate * 100) / 100;
@@ -479,6 +795,7 @@ document.getElementById('submitEntry').addEventListener('click', () => {
   renderCalendar();
   renderToday();
   renderStats();
+  renderGoal();
 });
 
 document.getElementById('addEarnToday').addEventListener('click', () => {
@@ -504,11 +821,55 @@ document.getElementById('importFile').addEventListener('change', (e) => {
 });
 
 // ---------- Init ----------
+// Staged on purpose: the status card is what the person looks at first,
+// so it's rendered synchronously. Everything else (calendar grid, chart,
+// stats) is pushed one frame later via requestAnimationFrame, so the
+// browser gets to paint in between instead of doing all the DOM work in
+// a single blocking chunk. Barely matters today, but keeps things smooth
+// as more months of history / products pile up.
 (function init() {
   loadEarnings();
+  loadGoals();
+  loadCustomProducts();
+
   renderToday();
-  renderCalendar();
-  renderStats();
+  renderGoal();
+
+  requestAnimationFrame(() => {
+    renderCalendar();
+    requestAnimationFrame(() => {
+      renderStats();
+      setupChartObserver();
+    });
+  });
+})();
+
+// ---------- Splash screen ----------
+// Shown instantly on load; hidden once init() above has run, with a small
+// minimum display time so it doesn't just flash on fast devices, then the
+// app shell fades/slides in with a staggered entrance.
+(function handleSplash() {
+  const splash = document.getElementById('splash');
+  const minVisible = 700;
+  const shownAt = performance.now();
+
+  function reveal() {
+    const elapsed = performance.now() - shownAt;
+    const wait = Math.max(0, minVisible - elapsed);
+    setTimeout(() => {
+      splash.classList.add('splash-hide');
+      document.body.classList.add('app-ready');
+      setTimeout(() => splash.remove(), 550);
+    }, wait);
+  }
+
+  if (document.readyState === 'complete') {
+    reveal();
+  } else {
+    window.addEventListener('load', reveal);
+    // Safety net in case 'load' is delayed by slow external fonts/assets
+    setTimeout(reveal, 2500);
+  }
 })();
 
 // ---------- PWA: offline support + installability ----------
