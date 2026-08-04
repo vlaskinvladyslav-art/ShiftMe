@@ -17,7 +17,7 @@ const monthNames = ['січня','лютого','березня','квітня',
 const monthNamesNom = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const weekdayNames = ['неділю','понеділок','вівторок','середу','четвер','пʼятницю','суботу'];
 
-const now = new Date(2026, 8, 6);
+const now = new Date();
 let viewYear = now.getFullYear();
 let viewMonth = now.getMonth();
 
