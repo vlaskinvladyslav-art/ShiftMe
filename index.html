@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>ShiftMe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Графік 3/3">
+<meta name="apple-mobile-web-app-title" content="ShiftMe">
 </head>
 <body>
 
@@ -91,7 +91,7 @@
 
   <div class="chart-card">
     <div class="chart-head">
-      <span>Заробіток за останні 14 днів</span>
+      <span>Заробіток за останні 14 робочих змін</span>
       <span class="chart-avg" id="chartAvgLabel">сер. 0 ₴</span>
     </div>
     <div id="earningsChart"></div>
@@ -112,11 +112,11 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">Powered by TioDeNadal <br> version 1.01</p>
+  <p class="app-footer">Powered by TioDeNadal <br> Version 0.1.2 Alpha</p>
 </div>
 
 <div class="overlay" id="overlay">
-  <div class="modal">
+  <div class="modal" id="modalBox">
     <div class="modal-handle"></div>
     <div class="modal-head">
       <p class="modal-title" id="modalTitle">—</p>
@@ -130,16 +130,18 @@
       <b id="dayTotal">0 ₴</b>
     </div>
 
+    <p class="modal-off-note" id="modalOffNote">Вихідний день — запис заробітку недоступний.</p>
+
     <p class="form-label">Виріб</p>
     <div class="product-choice" id="productChoice"></div>
 
-    <p class="form-label">Факт</p>
+    <p class="form-label">Кількість, шт</p>
     <div class="qty-row">
-      <input type="number" inputmode="numeric" id="qtyInput" placeholder="Кількість, шт" min="0">
+      <input type="number" inputmode="numeric" id="qtyInput" placeholder="напр. 173" min="0">
     </div>
     <p class="preview-line" id="previewLine"></p>
 
-    <button class="submit-btn" id="submitEntry" disabled>Додати виріб</button>
+    <button class="submit-btn" id="submitEntry" disabled>Додати запис</button>
     <p class="save-note" id="saveNote"></p>
   </div>
 </div>

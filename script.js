@@ -17,7 +17,7 @@ const monthNames = ['січня','лютого','березня','квітня',
 const monthNamesNom = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const weekdayNames = ['неділю','понеділок','вівторок','середу','четвер','пʼятницю','суботу'];
 
-const now = new Date();
+const now = new Date(2026, 8, 6);
 let viewYear = now.getFullYear();
 let viewMonth = now.getMonth();
 
@@ -57,6 +57,13 @@ function saveCustomProducts() {
   } catch (e) {
     return false;
   }
+}
+function deleteCustomProduct(code) {
+  // Only removes it from the pick-list for new entries — earnings already
+  // logged with this code keep their own stored code/rate regardless.
+  customProducts = customProducts.filter(p => p.code !== code);
+  saveCustomProducts();
+  if (selectedProduct === code) selectedProduct = CORE_PRODUCTS[0].code;
 }
 function allProducts() { return CORE_PRODUCTS.concat(customProducts); }
 function findProduct(code) { return allProducts().find(p => p.code === code); }
@@ -210,6 +217,15 @@ function renderToday() {
   } else {
     row.style.display = 'none';
   }
+
+  const addBtn = document.getElementById('addEarnToday');
+  if (status === 'work') {
+    addBtn.disabled = false;
+    addBtn.textContent = '+ Записати заробіток за сьогодні';
+  } else {
+    addBtn.disabled = true;
+    addBtn.textContent = 'Сьогодні вихідний — запис недоступний';
+  }
 }
 
 function renderCalendar() {
@@ -299,6 +315,26 @@ function last14Days() {
   return days;
 }
 
+// Used for the chart specifically: off days always have 0 earned (nothing
+// to earn), so mixing them in made the line dip in a way that had nothing
+// to do with performance. This walks backward from today and only keeps
+// work days, so the chart reflects actual shifts worked.
+function last14WorkDays() {
+  const days = [];
+  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let guard = 0;
+  while (days.length < 14 && guard < 120) {
+    const y = cursor.getFullYear(), m = cursor.getMonth(), d = cursor.getDate();
+    if (getStatus(y, m, d) === 'work') {
+      const key = dateKey(y, m, d);
+      days.unshift({ key, date: new Date(y, m, d), total: dayTotal(key) });
+    }
+    cursor.setDate(cursor.getDate() - 1);
+    guard++;
+  }
+  return days;
+}
+
 function formatShortDate(dt) {
   return dt.getDate() + ' ' + monthNames[dt.getMonth()];
 }
@@ -343,9 +379,10 @@ function renderChart(days) {
 
   let dots = '';
   let labels = '';
+  const todayKeyStr = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
   days.forEach((d, i) => {
     const x = xAt(i), y = yAt(d.total);
-    const isToday = i === days.length - 1;
+    const isToday = d.key === todayKeyStr;
     const above = d.total >= avg;
     const color = d.total === 0 ? 'var(--line)' : (above ? 'var(--off)' : 'var(--work)');
     const r = isToday ? 4.5 : 3;
@@ -468,9 +505,8 @@ function renderStats() {
     ? formatShortDate(new Date(record.key + 'T00:00:00'))
     : '—';
 
-  const days = last14Days();
-  renderTrendBadge(days);
-  renderChart(days);
+  renderTrendBadge(last14Days());
+  renderChart(last14WorkDays());
   renderProductStats();
 }
 
@@ -571,20 +607,26 @@ function renderGoal() {
   }
 
   const parts = partsForAmount(plan.perDayTarget);
-  const partsLine = parts.map(p => p.qty + ' шт (' + p.code + ')').join(' або ');
 
   let body = '';
   if (plan.reached) {
     body =
-      '<p class="goal-reached">🎉 Ціль досягнута! Понад план: +' + fmtMoney(plan.earned - plan.goal) + '</p>';
-  } else {
+      '<p class="goal-reached"> Ціль досягнута! Понад план: +' + fmtMoney(plan.earned - plan.goal) + '</p>';
+  } else if (plan.workDaysLeft === 0) {
     body =
       '<div class="goal-today">' +
+        '<p class="goal-no-shifts">Робочих змін до кінця місяця більше немає</p>' +
+      '</div>';
+  } else {
+    const partsChips = parts.map(p =>
+      '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
+    ).join('<span class="goal-part-or">або</span>');
+
+    body =
+      '<div class="goal-today' + (plan.todayIsWork ? '' : ' next-shift') + '">' +
         '<p class="goal-today-label">Потрібно ' + (plan.todayIsWork ? 'сьогодні' : 'у наступну зміну') + '</p>' +
-        '<p class="goal-today-value' + (plan.todayIsWork ? '' : ' is-off') + '">' +
-          (plan.todayIsWork ? fmtMoney(Math.round(plan.perDayTarget)) : 'Сьогодні вихідний') +
-        '</p>' +
-        (plan.workDaysLeft > 0 ? '<p class="goal-today-parts">≈ <b>' + partsLine + '</b></p>' : '') +
+        '<p class="goal-today-value' + (plan.todayIsWork ? '' : ' next-shift') + '">' + fmtMoney(Math.round(plan.perDayTarget)) + '</p>' +
+        '<div class="goal-today-parts-row">' + partsChips + '</div>' +
       '</div>' +
       '<div class="goal-upcoming" id="goalUpcoming"></div>';
   }
@@ -636,11 +678,25 @@ function renderGoal() {
 // ---------- Modal ----------
 function statusLabel(s) { return s === 'work' ? 'Робочий день' : 'Вихідний'; }
 
-function productTile(p) {
+function productTile(p, isCustom) {
   const btn = document.createElement('div');
   btn.className = 'product-btn' + (p.code === selectedProduct ? ' active' : '');
-  btn.innerHTML = '<span class="code">' + p.code + '</span><span class="rate">' + p.rate.toFixed(2) + ' ₴/шт</span>';
+  btn.innerHTML =
+    '<span class="code">' + p.code + '</span>' +
+    '<span class="rate">' + p.rate.toFixed(2) + ' ₴/шт</span>' +
+    (isCustom ? '<span class="product-del" title="Видалити виріб">✕</span>' : '');
   btn.addEventListener('click', () => { selectedProduct = p.code; renderProductChoice(); updatePreview(); });
+
+  if (isCustom) {
+    btn.querySelector('.product-del').addEventListener('click', (e) => {
+      e.stopPropagation(); // don't let the click also select the tile
+      if (confirm('Видалити виріб ' + p.code + ' зі списку?')) {
+        deleteCustomProduct(p.code);
+        renderProductChoice();
+        updatePreview();
+      }
+    });
+  }
   return btn;
 }
 
@@ -651,7 +707,7 @@ function renderProductChoice() {
   CORE_PRODUCTS.forEach(p => wrap.appendChild(productTile(p)));
 
   if (showAllProducts) {
-    customProducts.forEach(p => wrap.appendChild(productTile(p)));
+    customProducts.forEach(p => wrap.appendChild(productTile(p, true)));
   } else if (customProducts.length > 0) {
     const toggle = document.createElement('div');
     toggle.className = 'product-btn product-toggle-tile';
@@ -671,7 +727,7 @@ function openAddProductForm() {
   const wrap = document.getElementById('productChoice');
   wrap.innerHTML =
     '<div class="product-add-form">' +
-      '<input type="text" id="newProdCode" placeholder="Код виробу, напр. 5210" maxlength="16">' +
+      '<input type="text" id="newProdCode" placeholder="Код виробу, напр. 3115" maxlength="16">' +
       '<input type="number" id="newProdRate" placeholder="Ставка, ₴/шт" step="0.01" min="0">' +
       '<p class="product-add-error" id="productAddError"></p>' +
       '<div class="product-add-actions">' +
@@ -760,6 +816,7 @@ function openModal(y, m, d) {
   document.getElementById('modalStatus').textContent = statusLabel(status) + ' · ' + weekdayNames[dt.getDay()];
   document.getElementById('qtyInput').value = '';
   document.getElementById('saveNote').textContent = '';
+  document.getElementById('modalBox').classList.toggle('day-off', status !== 'work');
   showAllProducts = false;
   renderProductChoice();
   updatePreview();
@@ -780,7 +837,8 @@ document.getElementById('qtyInput').addEventListener('input', updatePreview);
 document.getElementById('submitEntry').addEventListener('click', () => {
   const qty = parseFloat(document.getElementById('qtyInput').value);
   const product = findProduct(selectedProduct);
-  if (!(qty > 0) || !product) return;
+  const [ey, em, ed] = activeDateKey.split('-').map(Number);
+  if (!(qty > 0) || !product || getStatus(ey, em - 1, ed) !== 'work') return;
 
   const amount = Math.round(qty * product.rate * 100) / 100;
   if (!earningsData[activeDateKey]) earningsData[activeDateKey] = [];

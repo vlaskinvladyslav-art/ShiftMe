@@ -1,7 +1,7 @@
 {
   "name": "ShiftMe — облік змін і заробітку",
   "short_name": "ShiftMe",
-  "description": "PWA ShiftMe by TioDeNadal",
+  "description": "Графік роботи 3/3 з обліком заробітку та статистикою",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

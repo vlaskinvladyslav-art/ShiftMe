@@ -15,6 +15,7 @@
 
 * { box-sizing: border-box; }
 p { margin: 0; }
+html { touch-action: manipulation; }
 
 /* ---------- Splash screen ---------- */
 .splash {
@@ -114,14 +115,6 @@ h1 span { color: var(--work); }
   font-size: 12px;
   color: var(--muted);
   text-transform: capitalize;
-}
-.app-footer {
-  text-align: center;
-  margin-top: 24px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  color: var(--line);
 }
 
 /* Punch strip — signature element: 6-day cycle ticker */
@@ -669,32 +662,66 @@ h1 span { color: var(--work); }
 
 .goal-today {
   background: var(--surface-2);
+  border-top: 3px solid var(--money);
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 16px 16px 14px;
   margin-bottom: 12px;
 }
+.goal-today.next-shift { border-top-color: var(--off); }
+
 .goal-today-label {
   font-size: 11px;
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-family: 'JetBrains Mono', monospace;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .goal-today-value {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
+  font-size: 32px;
   font-weight: 700;
   color: var(--money);
-  margin-bottom: 6px;
+  line-height: 1;
+  margin-bottom: 14px;
 }
-.goal-today-value.is-off { color: var(--off); font-size: 15px; }
-.goal-today-parts {
-  font-size: 11.5px;
+.goal-today-value.next-shift { color: var(--off); }
+
+.goal-today-parts-row { display: flex; align-items: stretch; gap: 8px; }
+.goal-part-chip {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 8px;
+  text-align: center;
+}
+.goal-part-chip b {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  color: var(--text);
+}
+.goal-part-chip span {
+  font-size: 10px;
   color: var(--muted);
   font-family: 'JetBrains Mono', monospace;
 }
-.goal-today-parts b { color: var(--text); }
+.goal-part-or {
+  align-self: center;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.goal-no-shifts {
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
 
 .goal-upcoming {
   display: flex;
@@ -882,6 +909,7 @@ h1 span { color: var(--work); }
   margin-bottom: 14px;
 }
 .product-btn {
+  position: relative;
   background: var(--surface-2);
   border: 1.5px solid var(--line);
   color: var(--text);
@@ -891,24 +919,25 @@ h1 span { color: var(--work); }
   cursor: pointer;
   font-family: 'Inter', sans-serif;
 }
-.product-btn { position: relative; }
+.product-btn .code { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; display: block; }
+.product-btn .rate { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+.product-btn.active { border-color: var(--money); background: rgba(244,201,93,0.1); }
+.product-btn.active .rate { color: var(--money); }
+
 .product-del {
   position: absolute;
   top: 4px;
   right: 6px;
-  font-size: 11px;
-  color: var(--muted);
   width: 16px;
   height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 10px;
+  color: var(--muted);
+  border-radius: 4px;
 }
-.product-del:active { color: var(--work); }
-.product-btn .code { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px; display: block; }
-.product-btn .rate { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
-.product-btn.active { border-color: var(--money); background: rgba(244,201,93,0.1); }
-.product-btn.active .rate { color: var(--money); }
+.product-del:active { color: var(--work); background: rgba(255,140,66,0.15); }
 
 .qty-row {
   display: flex;
@@ -948,3 +977,35 @@ h1 span { color: var(--work); }
 }
 .submit-btn:disabled { opacity: 0.4; }
 .save-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+.modal-off-note {
+  display: none;
+  background: var(--off-dim);
+  color: var(--off);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.modal.day-off .form-label,
+.modal.day-off .product-choice,
+.modal.day-off .qty-row,
+.modal.day-off .preview-line,
+.modal.day-off .submit-btn { display: none; }
+.modal.day-off .modal-off-note { display: block; }
+
+.add-earn-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.add-earn-btn:disabled:active { transform: none; }
+
+.app-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--line);
+}
