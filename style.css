@@ -752,6 +752,8 @@ h1 span { color: var(--work); }
   color: var(--text);
 }
 .goal-chip.chip-off .chip-val { color: var(--muted); font-weight: 500; }
+.goal-chip.chip-done { border-color: var(--off); }
+.goal-chip.chip-done .chip-val { color: var(--off); }
 
 .goal-remove {
   display: block;

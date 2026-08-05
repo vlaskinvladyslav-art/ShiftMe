@@ -561,14 +561,27 @@ function computeGoalPlan() {
   const remaining = Math.max(0, goal - earned);
   const reached = earned >= goal;
 
-  let workDaysLeft = 0;
-  for (let d = today; d <= daysInMonth; d++) if (getStatus(y, m, d) === 'work') workDaysLeft++;
+  // Two counts: every remaining work day (used to know if the month is
+  // simply over), and only the ones that are still genuinely "open" — no
+  // earnings recorded for them yet. Today always counts as open even if
+  // it already has something logged, since the shift isn't over yet.
+  // Splitting the remaining amount only across open days is what makes
+  // the compensation logic correct: a day that already has money on it
+  // shouldn't also get a slice of what's still owed.
+  let trueWorkDaysLeft = 0;
+  let openWorkDaysLeft = 0;
+  for (let d = today; d <= daysInMonth; d++) {
+    if (getStatus(y, m, d) !== 'work') continue;
+    trueWorkDaysLeft++;
+    if (d === today || dayTotal(dateKey(y, m, d)) === 0) openWorkDaysLeft++;
+  }
+  const workDaysLeft = openWorkDaysLeft > 0 ? openWorkDaysLeft : trueWorkDaysLeft;
 
   const perDayTarget = workDaysLeft > 0 ? remaining / workDaysLeft : 0;
   const todayIsWork = getStatus(y, m, today) === 'work';
   const progressPct = goal > 0 ? Math.min(100, (earned / goal) * 100) : 0;
 
-  return { goal, earned, remaining, totalWorkDays, workDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth };
+  return { goal, earned, remaining, totalWorkDays, workDaysLeft, trueWorkDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth };
 }
 
 function partsForAmount(amount) {
@@ -612,7 +625,7 @@ function renderGoal() {
   if (plan.reached) {
     body =
       '<p class="goal-reached"> Ціль досягнута! Понад план: +' + fmtMoney(plan.earned - plan.goal) + '</p>';
-  } else if (plan.workDaysLeft === 0) {
+  } else if (plan.trueWorkDaysLeft === 0) {
     body =
       '<div class="goal-today">' +
         '<p class="goal-no-shifts">Робочих змін до кінця місяця більше немає</p>' +
@@ -657,17 +670,23 @@ function renderGoal() {
     renderGoal();
   });
 
-  if (!plan.reached && plan.workDaysLeft > 0) {
+  if (!plan.reached && plan.trueWorkDaysLeft > 0) {
     const chipsWrap = document.getElementById('goalUpcoming');
     let chipsHtml = '';
     let shown = 0;
     for (let d = plan.today; d <= plan.daysInMonth && shown < 6; d++) {
       const isWork = getStatus(plan.y, plan.m, d) === 'work';
       const isToday = d === plan.today;
+      const key = dateKey(plan.y, plan.m, d);
+      const already = !isToday && dayTotal(key) > 0;
+      let valueHtml;
+      if (!isWork) valueHtml = 'вих.';
+      else if (already) valueHtml = '✓ ' + fmtMoneyShort(Math.round(dayTotal(key))) + '₴';
+      else valueHtml = fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴';
       chipsHtml +=
-        '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + '">' +
+        '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (already ? ' chip-done' : '') + '">' +
           '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
-          '<p class="chip-val">' + (isWork ? fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴' : 'вих.') + '</p>' +
+          '<p class="chip-val">' + valueHtml + '</p>' +
         '</div>';
       shown++;
     }
@@ -727,7 +746,7 @@ function openAddProductForm() {
   const wrap = document.getElementById('productChoice');
   wrap.innerHTML =
     '<div class="product-add-form">' +
-      '<input type="text" id="newProdCode" placeholder="Код виробу, напр. 3115" maxlength="16">' +
+      '<input type="text" id="newProdCode" placeholder="Код виробу, напр. 5210" maxlength="16">' +
       '<input type="number" id="newProdRate" placeholder="Ставка, ₴/шт" step="0.01" min="0">' +
       '<p class="product-add-error" id="productAddError"></p>' +
       '<div class="product-add-actions">' +
