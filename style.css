@@ -123,7 +123,7 @@ body {
   font-family: 'Inter', sans-serif;
   min-height: 100vh;
   padding: 20px 14px 40px;
-  padding-top: calc (20px + env(safe-area-inset-top));
+  padding-top: calc(20px + env(safe-area-inset-top));
 }
 
 .wrap { max-width: 460px; margin: 0 auto; }
