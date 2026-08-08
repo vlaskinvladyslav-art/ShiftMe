@@ -593,75 +593,91 @@ function renderGoal() {
   const plan = computeGoalPlan();
 
   if (!plan || goalEditing) {
-    const current = plan ? plan.goal : '';
-    card.innerHTML =
-      '<div class="goal-empty">' +
-        (plan ? '' : '<div class="goal-empty-icon"></div>') +
-        '<p class="goal-empty-title">' + (plan ? 'Змінити ціль на ' + monthNames[now.getMonth()] : 'Встанови ціль на місяць') + '</p>' +
-        (plan ? '' : '<p class="goal-empty-sub">Порахуємо, скільки треба заробляти щодня, щоб дійти суми</p>') +
-        '<div class="goal-input-row">' +
-          '<input type="number" id="goalInput" placeholder="напр. 35000" value="' + current + '" min="0">' +
-          '<button id="goalSetBtn">Зберегти</button>' +
-        '</div>' +
-      '</div>';
-
-    document.getElementById('goalSetBtn').addEventListener('click', () => {
-      const val = parseFloat(document.getElementById('goalInput').value);
-      if (!(val > 0)) return;
-      goalsData[currentMonthKey()] = val;
-      saveGoals();
-      goalEditing = false;
-      renderGoal();
-    });
-    document.getElementById('goalInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('goalSetBtn').click();
-    });
+    card.dataset.state = plan ? 'editing' : 'setup';
+    document.getElementById('goalSetupIcon').style.display = plan ? 'none' : '';
+    document.getElementById('goalSetupTitle').textContent = plan
+      ? 'Змінити ціль на ' + monthNames[now.getMonth()]
+      : 'Встанови ціль на місяць';
+    document.getElementById('goalSetupSub').style.display = plan ? 'none' : '';
+    document.getElementById('goalInput').value = plan ? plan.goal : '';
     return;
   }
 
-  const parts = partsForAmount(plan.perDayTarget);
-
-  let body = '';
-  if (plan.reached) {
-    body =
-      '<p class="goal-reached"> Ціль досягнута! Понад план: +' + fmtMoney(plan.earned - plan.goal) + '</p>';
-  } else if (plan.trueWorkDaysLeft === 0) {
-    body =
-      '<div class="goal-today">' +
-        '<p class="goal-no-shifts">Робочих змін до кінця місяця більше немає</p>' +
-      '</div>';
-  } else {
-    const partsChips = parts.map(p =>
-      '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
-    ).join('<span class="goal-part-or">або</span>');
-
-    body =
-      '<div class="goal-today' + (plan.todayIsWork ? '' : ' next-shift') + '">' +
-        '<p class="goal-today-label">Потрібно ' + (plan.todayIsWork ? 'сьогодні' : 'у наступну зміну') + '</p>' +
-        '<p class="goal-today-value' + (plan.todayIsWork ? '' : ' next-shift') + '">' + fmtMoney(Math.round(plan.perDayTarget)) + '</p>' +
-        '<div class="goal-today-parts-row">' + partsChips + '</div>' +
-      '</div>' +
-      '<div class="goal-upcoming" id="goalUpcoming"></div>';
-  }
-
-  card.innerHTML =
-    '<div class="goal-head">' +
-      '<span>Ціль на ' + monthNames[now.getMonth()] + '</span>' +
-      '<div class="goal-head-actions">' +
-        '<button class="goal-icon-btn" id="goalEditBtn" title="Змінити ціль">✎</button>' +
-      '</div>' +
-    '</div>' +
-    '<div class="goal-progress-track"><div class="goal-progress-fill' + (plan.reached ? ' reached' : '') + '" id="goalFill"></div></div>' +
-    '<div class="goal-progress-nums"><span><b id="goalEarned">0 ₴</b> / ' + fmtMoney(plan.goal) + '</span><span class="goal-progress-pct" id="goalPct">0%</span></div>' +
-    body +
-    '<button class="goal-remove" id="goalRemoveBtn">Прибрати ціль</button>';
-
+  document.getElementById('goalMonthName').textContent = monthNames[now.getMonth()];
+  document.getElementById('goalFill').classList.toggle('reached', plan.reached);
   requestAnimationFrame(() => {
     document.getElementById('goalFill').style.width = plan.progressPct + '%';
   });
   animateNumber(document.getElementById('goalEarned'), plan.earned, fmtMoney);
+  document.getElementById('goalTargetLabel').textContent = fmtMoney(plan.goal);
   document.getElementById('goalPct').textContent = Math.round(plan.progressPct) + '%';
 
+  if (plan.reached) {
+    card.dataset.state = 'reached';
+    document.getElementById('goalReachedMsg').textContent =
+      '🎉 Ціль досягнута! Понад план: +' + fmtMoney(plan.earned - plan.goal);
+  } else if (plan.trueWorkDaysLeft === 0) {
+    card.dataset.state = 'no-shifts';
+  } else {
+    card.dataset.state = 'normal';
+
+    const todayBox = document.getElementById('goalTodayBox');
+    const valueEl = document.getElementById('goalTodayValue');
+    todayBox.classList.toggle('next-shift', !plan.todayIsWork);
+    valueEl.classList.toggle('next-shift', !plan.todayIsWork);
+    document.getElementById('goalTodayLabel').textContent =
+      'Потрібно ' + (plan.todayIsWork ? 'сьогодні' : 'у наступну зміну');
+    valueEl.textContent = fmtMoney(Math.round(plan.perDayTarget));
+
+    const parts = partsForAmount(plan.perDayTarget);
+    document.getElementById('goalPartsRow').innerHTML = parts.map(p =>
+      '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
+    ).join('<span class="goal-part-or">або</span>');
+
+    renderGoalUpcoming(plan);
+  }
+}
+
+// The list of upcoming days genuinely varies in content each time (which
+// days, whether they already have earnings), so it stays dynamically
+// built — unlike the rest of the card, which no longer rebuilds itself.
+function renderGoalUpcoming(plan) {
+  const chipsWrap = document.getElementById('goalUpcoming');
+  let chipsHtml = '';
+  let shown = 0;
+  for (let d = plan.today; d <= plan.daysInMonth && shown < 6; d++) {
+    const isWork = getStatus(plan.y, plan.m, d) === 'work';
+    const isToday = d === plan.today;
+    const key = dateKey(plan.y, plan.m, d);
+    const already = !isToday && dayTotal(key) > 0;
+    let valueHtml;
+    if (!isWork) valueHtml = 'вих.';
+    else if (already) valueHtml = '✓ ' + fmtMoneyShort(Math.round(dayTotal(key))) + '₴';
+    else valueHtml = fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴';
+    chipsHtml +=
+      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (already ? ' chip-done' : '') + '">' +
+        '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
+        '<p class="chip-val">' + valueHtml + '</p>' +
+      '</div>';
+    shown++;
+  }
+  chipsWrap.innerHTML = chipsHtml;
+}
+
+// Wired once at startup since the goal-card elements are now permanent
+// DOM nodes that renderGoal() never tears down.
+function initGoalCardListeners() {
+  document.getElementById('goalSetBtn').addEventListener('click', () => {
+    const val = parseFloat(document.getElementById('goalInput').value);
+    if (!(val > 0)) return;
+    goalsData[currentMonthKey()] = val;
+    saveGoals();
+    goalEditing = false;
+    renderGoal();
+  });
+  document.getElementById('goalInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('goalSetBtn').click();
+  });
   document.getElementById('goalEditBtn').addEventListener('click', () => { goalEditing = true; renderGoal(); });
   document.getElementById('goalRemoveBtn').addEventListener('click', () => {
     delete goalsData[currentMonthKey()];
@@ -669,93 +685,52 @@ function renderGoal() {
     goalEditing = false;
     renderGoal();
   });
-
-  if (!plan.reached && plan.trueWorkDaysLeft > 0) {
-    const chipsWrap = document.getElementById('goalUpcoming');
-    let chipsHtml = '';
-    let shown = 0;
-    for (let d = plan.today; d <= plan.daysInMonth && shown < 6; d++) {
-      const isWork = getStatus(plan.y, plan.m, d) === 'work';
-      const isToday = d === plan.today;
-      const key = dateKey(plan.y, plan.m, d);
-      const already = !isToday && dayTotal(key) > 0;
-      let valueHtml;
-      if (!isWork) valueHtml = 'вих.';
-      else if (already) valueHtml = '✓ ' + fmtMoneyShort(Math.round(dayTotal(key))) + '₴';
-      else valueHtml = fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴';
-      chipsHtml +=
-        '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (already ? ' chip-done' : '') + '">' +
-          '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
-          '<p class="chip-val">' + valueHtml + '</p>' +
-        '</div>';
-      shown++;
-    }
-    chipsWrap.innerHTML = chipsHtml;
-  }
 }
 
 // ---------- Modal ----------
 function statusLabel(s) { return s === 'work' ? 'Робочий день' : 'Вихідний'; }
 
-function productTile(p, isCustom) {
+function productTile(p) {
+  // Only ever used for custom products now — the two core tiles are
+  // static nodes in index.html, set up once by initCoreProductTiles().
   const btn = document.createElement('div');
   btn.className = 'product-btn' + (p.code === selectedProduct ? ' active' : '');
+  btn.dataset.code = p.code;
   btn.innerHTML =
     '<span class="code">' + p.code + '</span>' +
     '<span class="rate">' + p.rate.toFixed(2) + ' ₴/шт</span>' +
-    (isCustom ? '<span class="product-del" title="Видалити виріб">✕</span>' : '');
-  btn.addEventListener('click', () => { selectedProduct = p.code; renderProductChoice(); updatePreview(); });
-
-  if (isCustom) {
-    btn.querySelector('.product-del').addEventListener('click', (e) => {
-      e.stopPropagation(); // don't let the click also select the tile
-      if (confirm('Видалити виріб ' + p.code + ' зі списку?')) {
-        deleteCustomProduct(p.code);
-        renderProductChoice();
-        updatePreview();
-      }
-    });
-  }
+    '<span class="product-del" title="Видалити виріб">✕</span>';
+  btn.addEventListener('click', () => { selectedProduct = p.code; updateProductSelection(); updatePreview(); });
+  btn.querySelector('.product-del').addEventListener('click', (e) => {
+    e.stopPropagation(); // don't let the click also select the tile
+    if (confirm('Видалити виріб ' + p.code + ' зі списку?')) {
+      deleteCustomProduct(p.code);
+      renderProductChoice();
+      updatePreview();
+    }
+  });
   return btn;
 }
 
-function renderProductChoice() {
-  const wrap = document.getElementById('productChoice');
-  wrap.innerHTML = '';
+// Sets the two fixed built-in tiles' text once at startup and wires their
+// click handlers — they never get torn down or rebuilt after this.
+function initCoreProductTiles() {
+  const tileIds = ['coreTile0', 'coreTile1'];
+  CORE_PRODUCTS.forEach((p, i) => {
+    const tile = document.getElementById(tileIds[i]);
+    if (!tile) return;
+    tile.dataset.code = p.code;
+    document.getElementById(tileIds[i] + 'Code').textContent = p.code;
+    document.getElementById(tileIds[i] + 'Rate').textContent = p.rate.toFixed(2) + ' ₴/шт';
+    tile.addEventListener('click', () => { selectedProduct = p.code; updateProductSelection(); updatePreview(); });
+  });
 
-  CORE_PRODUCTS.forEach(p => wrap.appendChild(productTile(p)));
-
-  if (showAllProducts) {
-    customProducts.forEach(p => wrap.appendChild(productTile(p, true)));
-  } else if (customProducts.length > 0) {
-    const toggle = document.createElement('div');
-    toggle.className = 'product-btn product-toggle-tile';
-    toggle.innerHTML = '<span class="code">+' + customProducts.length + '</span><span class="rate">показати всі</span>';
-    toggle.addEventListener('click', () => { showAllProducts = true; renderProductChoice(); });
-    wrap.appendChild(toggle);
-  }
-
-  const addTile = document.createElement('div');
-  addTile.className = 'product-btn product-add-tile';
-  addTile.innerHTML = '<span class="code">+</span><span class="rate">додати виріб</span>';
-  addTile.addEventListener('click', openAddProductForm);
-  wrap.appendChild(addTile);
-}
-
-function openAddProductForm() {
-  const wrap = document.getElementById('productChoice');
-  wrap.innerHTML =
-    '<div class="product-add-form">' +
-      '<input type="text" id="newProdCode" placeholder="Код виробу, напр. 5210" maxlength="16">' +
-      '<input type="number" id="newProdRate" placeholder="Ставка, ₴/шт" step="0.01" min="0">' +
-      '<p class="product-add-error" id="productAddError"></p>' +
-      '<div class="product-add-actions">' +
-        '<button type="button" id="newProdCancel">Скасувати</button>' +
-        '<button type="button" id="newProdSave">Додати</button>' +
-      '</div>' +
-    '</div>';
-
-  document.getElementById('newProdCancel').addEventListener('click', renderProductChoice);
+  document.getElementById('productToggleTile').addEventListener('click', () => {
+    showAllProducts = true;
+    renderProductChoice();
+  });
+  document.getElementById('productAddTile').addEventListener('click', openAddProductForm);
+  document.getElementById('newProdCancel').addEventListener('click', closeAddProductForm);
   document.getElementById('newProdSave').addEventListener('click', () => {
     const code = document.getElementById('newProdCode').value.trim();
     const rate = parseFloat(document.getElementById('newProdRate').value);
@@ -772,9 +747,53 @@ function openAddProductForm() {
     saveCustomProducts();
     selectedProduct = code;
     showAllProducts = true;
+    closeAddProductForm();
     renderProductChoice();
     updatePreview();
   });
+}
+
+// Updates just the "active" highlight on whichever tile matches the
+// current selection — no rebuild, just a class toggle.
+function updateProductSelection() {
+  document.querySelectorAll('#productChoice .product-btn[data-code]').forEach(tile => {
+    tile.classList.toggle('active', tile.dataset.code === selectedProduct);
+  });
+}
+
+function renderProductChoice() {
+  // The core tiles, toggle tile, and add tile are permanent DOM nodes —
+  // only the custom-products list actually needs rebuilding, since it's
+  // the one part with a genuinely variable length.
+  const customWrap = document.getElementById('customProductTiles');
+  customWrap.innerHTML = '';
+  if (showAllProducts) {
+    customProducts.forEach(p => customWrap.appendChild(productTile(p)));
+  }
+
+  const toggleTile = document.getElementById('productToggleTile');
+  if (!showAllProducts && customProducts.length > 0) {
+    toggleTile.style.display = '';
+    document.getElementById('toggleCountLabel').textContent = '+' + customProducts.length;
+  } else {
+    toggleTile.style.display = 'none';
+  }
+
+  updateProductSelection();
+}
+
+function openAddProductForm() {
+  document.getElementById('productChoice').style.display = 'none';
+  document.getElementById('productAddForm').style.display = 'flex';
+  document.getElementById('newProdCode').value = '';
+  document.getElementById('newProdRate').value = '';
+  document.getElementById('productAddError').textContent = '';
+}
+
+function closeAddProductForm() {
+  document.getElementById('productAddForm').style.display = 'none';
+  document.getElementById('productChoice').style.display = '';
+  renderProductChoice();
 }
 
 function updatePreview() {
@@ -803,7 +822,7 @@ function renderEntryList() {
       const row = document.createElement('div');
       row.className = 'entry-row';
       row.innerHTML =
-        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
+        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
         '<div class="entry-row-right"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
         '<button class="entry-del" data-idx="' + idx + '">✕</button></div>';
       list.appendChild(row);
@@ -834,8 +853,11 @@ function openModal(y, m, d) {
   document.getElementById('modalTitle').textContent = d + ' ' + monthNames[m] + ' ' + y;
   document.getElementById('modalStatus').textContent = statusLabel(status) + ' · ' + weekdayNames[dt.getDay()];
   document.getElementById('qtyInput').value = '';
+  document.getElementById('orderInput').value = '';
   document.getElementById('saveNote').textContent = '';
   document.getElementById('modalBox').classList.toggle('day-off', status !== 'work');
+  document.getElementById('productAddForm').style.display = 'none';
+  document.getElementById('productChoice').style.display = '';
   showAllProducts = false;
   renderProductChoice();
   updatePreview();
@@ -856,17 +878,19 @@ document.getElementById('qtyInput').addEventListener('input', updatePreview);
 document.getElementById('submitEntry').addEventListener('click', () => {
   const qty = parseFloat(document.getElementById('qtyInput').value);
   const product = findProduct(selectedProduct);
+  const order = document.getElementById('orderInput').value.trim();
   const [ey, em, ed] = activeDateKey.split('-').map(Number);
   if (!(qty > 0) || !product || getStatus(ey, em - 1, ed) !== 'work') return;
 
   const amount = Math.round(qty * product.rate * 100) / 100;
   if (!earningsData[activeDateKey]) earningsData[activeDateKey] = [];
-  earningsData[activeDateKey].push({ code: product.code, qty: qty, rate: product.rate, amount: amount });
+  earningsData[activeDateKey].push({ code: product.code, qty: qty, rate: product.rate, amount: amount, order: order || null });
 
   const ok = saveEarnings();
   document.getElementById('saveNote').textContent = ok ? 'Збережено' : 'Не вдалося зберегти, спробуйте ще раз';
 
   document.getElementById('qtyInput').value = '';
+  document.getElementById('orderInput').value = '';
   updatePreview();
   renderEntryList();
   renderCalendar();
@@ -908,6 +932,9 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   loadEarnings();
   loadGoals();
   loadCustomProducts();
+
+  initGoalCardListeners();
+  initCoreProductTiles();
 
   renderToday();
   renderGoal();
