@@ -24,7 +24,7 @@ let viewMonth = now.getMonth();
 // ---------- Earnings logic ----------
 const CORE_PRODUCTS = [
   { code: '3115', rate: 7.47 },
-  { code: '4320', rate: 14.21 }
+  { code: '4320', rate: 14.10 }
 ];
 
 const STORAGE_KEY = 'shiftTrackerEarnings';
@@ -69,6 +69,12 @@ function allProducts() { return CORE_PRODUCTS.concat(customProducts); }
 function findProduct(code) { return allProducts().find(p => p.code === code); }
 
 function pad(n) { return String(n).padStart(2, '0'); }
+function fmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
 function dateKey(y, m, d) { return y + '-' + pad(m + 1) + '-' + pad(d); }
 function fmtMoney(v) {
   return v.toLocaleString('uk-UA', { maximumFractionDigits: 2, minimumFractionDigits: v % 1 === 0 ? 0 : 2 }) + ' ₴';
@@ -183,6 +189,7 @@ function renderToday() {
   const card = document.getElementById('statusCard');
   card.className = 'status-card is-' + status;
   document.getElementById('statusValue').textContent = status === 'work' ? 'Робочий день' : 'Вихідний';
+  document.getElementById('statusIcon').src = status === 'work' ? 'workDay.png' : 'offDay.png';
 
   let nd = new Date(Date.UTC(y, m, d));
   let cur = status;
@@ -193,9 +200,15 @@ function renderToday() {
     const s = getStatus(nd.getUTCFullYear(), nd.getUTCMonth(), nd.getUTCDate());
     if (s !== cur) break;
   }
-  const label = cur === 'work' ? 'вихідний' : 'робочий день';
-  document.getElementById('nextChange').textContent =
-    steps + (steps === 1 ? ' день' : (steps < 5 ? ' дні' : ' днів')) + ' (' + nd.getUTCDate() + ' ' + monthNames[nd.getUTCMonth()] + ') → ' + label;
+  // Phrased around *what's coming*, not a "current → next" arrow — the
+  // label already says what kind of day it is, so the value only needs
+  // to answer "when".
+  const daysWord = steps === 1 ? 'день' : (steps < 5 ? 'дні' : 'днів');
+  const whenText = steps === 1 ? 'завтра' : 'за ' + steps + ' ' + daysWord;
+  document.getElementById('statusNextLabel').textContent =
+    cur === 'work' ? 'Наступний вихідний' : 'Наступна робоча зміна';
+  document.getElementById('statusNextValue').textContent =
+    nd.getUTCDate() + ' ' + monthNames[nd.getUTCMonth()] + ' · ' + whenText;
 
   const strip = document.getElementById('cycleStrip');
   strip.innerHTML = '';
@@ -822,7 +835,7 @@ function renderEntryList() {
       const row = document.createElement('div');
       row.className = 'entry-row';
       row.innerHTML =
-        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
+        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт' + (fmtTime(e.time) ? ' · ' + fmtTime(e.time) : '') + '</span></div>' +
         '<div class="entry-row-right"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
         '<button class="entry-del" data-idx="' + idx + '">✕</button></div>';
       list.appendChild(row);
@@ -884,7 +897,7 @@ document.getElementById('submitEntry').addEventListener('click', () => {
 
   const amount = Math.round(qty * product.rate * 100) / 100;
   if (!earningsData[activeDateKey]) earningsData[activeDateKey] = [];
-  earningsData[activeDateKey].push({ code: product.code, qty: qty, rate: product.rate, amount: amount, order: order || null });
+  earningsData[activeDateKey].push({ code: product.code, qty: qty, rate: product.rate, amount: amount, order: order || null, time: new Date().toISOString() });
 
   const ok = saveEarnings();
   document.getElementById('saveNote').textContent = ok ? 'Збережено' : 'Не вдалося зберегти, спробуйте ще раз';

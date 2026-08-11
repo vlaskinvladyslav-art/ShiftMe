@@ -124,6 +124,7 @@ body {
   min-height: 100vh;
   padding: 20px 14px 40px;
   padding-top: calc(20px + env(safe-area-inset-top));
+  padding-bottom: calc(40px + env(safe-area-inset-bottom));
 }
 
 .wrap { max-width: 460px; margin: 0 auto; }
@@ -192,6 +193,7 @@ h1 span { color: var(--work); }
   margin-bottom: 18px;
   position: relative;
   overflow: hidden;
+  transition: background 0.4s ease;
 }
 .status-card::before {
   content: "";
@@ -199,9 +201,33 @@ h1 span { color: var(--work); }
   top: 0; left: 0; right: 0;
   height: 3px;
   background: var(--accent, var(--work));
+  box-shadow: 0 0 14px 0 var(--accent, var(--work));
 }
-.status-card.is-work { --accent: var(--work); }
-.status-card.is-off { --accent: var(--off); }
+.status-card.is-work {
+  --accent: var(--work);
+  background: linear-gradient(160deg, rgba(255, 140, 66, 0.06), var(--surface) 55%);
+}
+.status-card.is-off {
+  --accent: var(--off);
+  background: linear-gradient(160deg, rgba(67, 198, 172, 0.06), var(--surface) 55%);
+}
+
+.status-icon {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+  flex-shrink: 0;
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  font-size: 26px;
+  line-height: 1;
+  animation: statusIconFloat 2.6s ease-in-out infinite;
+}
+@keyframes statusIconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
 
 .status-label {
   font-family: 'JetBrains Mono', monospace;
@@ -216,8 +242,44 @@ h1 span { color: var(--work); }
   font-size: 30px;
   font-weight: 700;
   color: var(--accent, var(--work));
-  margin-bottom: 14px;
+  margin-bottom: 16px;
+  animation: statusValueIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1);
 }
+@keyframes statusValueIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.status-next-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+.status-next-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  flex-shrink: 0; 
+}
+.status-next-text { min-width: 0; }
+.status-next-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 2px;
+}
+.status-next-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .status-sub {
   display: flex;
   justify-content: space-between;
@@ -562,7 +624,7 @@ h1 span { color: var(--work); }
 #newProdSave { background: var(--money); color: #1b1500; border: none; }
 
 /* ---------- Micro-interactions ---------- */
-@keyframes popValue {
+@f popValue {
   0% { transform: scale(1); }
   45% { transform: scale(1.14); }
   100% { transform: scale(1); }
@@ -582,7 +644,7 @@ h1 span { color: var(--work); }
 .month-total b, .stat-value, .status-value, #todayEarnValue, #chartAvgLabel {
   transition: color 0.2s ease;
 }
-да
+
 /* Chart draw-in */
 .chart-line-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
 .chart-dot { opacity: 0; transform: scale(0); transform-box: fill-box; transform-origin: center; }
@@ -714,12 +776,12 @@ h1 span { color: var(--work); }
 
 .goal-today {
   background: var(--surface-2);
-  border-left: 3px solid var(--money);
+  border-top: 3px solid var(--money);
   border-radius: 12px;
   padding: 16px 16px 14px;
   margin-bottom: 12px;
 }
-.goal-today.next-shift { border-left-color: var(--off); }
+.goal-today.next-shift { border-top-color: var(--off); }
 
 .goal-today-label {
   font-size: 11px;
@@ -1075,16 +1137,26 @@ h1 span { color: var(--work); }
   color: var(--line);
 }
 
-/* ---------- Coming soon banner (reserved spot for the future leaderboard) ---------- */
 .coming-soon-banner {
   border: 1.5px dashed var(--line);
   border-radius: 14px;
   padding: 16px;
   text-align: center;
-  margin-top: 19px;
-  margin-bottom: 19px;
+  margin-bottom: 18px;
+  margin-top: 18px;
   background:
     repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 16px);
+}
+
+.coming-soon-title {
+  color: var(--text);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.coming-soon-sub {
+  color: var(--muted);
+  font-size: 0.9em;
 }
 .coming-soon-title {
   font-family: 'Space Grotesk', sans-serif;
@@ -1098,3 +1170,7 @@ h1 span { color: var(--work); }
   color: var(--muted);
   opacity: 0.75;
 }
+
+
+
+

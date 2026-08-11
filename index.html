@@ -39,12 +39,18 @@
   <div class="cycle-strip" id="cycleStrip"></div>
 
   <div class="status-card" id="statusCard">
+    <img class="status-icon" id="statusIcon" src="workDay.png" alt="">
     <p class="status-label">Сьогодні</p>
     <p class="status-value" id="statusValue">—</p>
-    <div class="status-sub">
-      <span>Наступна зміна</span>
-      <b id="nextChange">—</b>
+
+    <div class="status-next-box" id="statusNextBox">
+      <img class="status-next-icon" src="calendar.png">
+      <div class="status-next-text">
+        <p class="status-next-label" id="statusNextLabel">—</p>
+        <p class="status-next-value" id="statusNextValue">—</p>
+      </div>
     </div>
+
     <div class="status-sub" id="todayEarnRow" style="display:none;">
       <span>Зароблено сьогодні</span>
       <b class="money" id="todayEarnValue">0 ₴</b>
@@ -55,7 +61,7 @@
 
   <div class="goal-card" id="goalCard">
     <div class="goal-setup goal-empty" id="goalSetup">
-      <p class="goal-empty-icon" id="goalSetupIcon">🎯</p>
+      <p class="goal-empty-icon" id="goalSetupIcon"></p>
       <p class="goal-empty-title" id="goalSetupTitle">Встанови ціль на місяць</p>
       <p class="goal-empty-sub" id="goalSetupSub">Порахуємо, скільки треба заробляти щодня, щоб дійти суми</p>
       <div class="goal-input-row">
@@ -115,8 +121,8 @@
   </div>
 
   <div class="coming-soon-banner">
-    <p class="coming-soon-title">У розробці</p>
-    <p class="coming-soon-sub">Тут з'явиться новий елемент</p>
+    <p class="coming-soon-title"> Процес розробки</p>
+    <p class="coming-soon-sub">Застосунок у активній розробці. Створюйте резервні копії для збереження записів</p>
   </div>
 
   <p class="section-title">Статистика</p>
@@ -156,7 +162,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.2.1 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.3.2 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
