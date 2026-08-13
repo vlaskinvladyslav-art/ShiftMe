@@ -621,6 +621,7 @@ function renderGoal() {
   document.getElementById('goalFill').classList.toggle('reached', plan.reached);
   requestAnimationFrame(() => {
     document.getElementById('goalFill').style.width = plan.progressPct + '%';
+    document.getElementById('goalShimmer').style.setProperty('--fill-pct', plan.progressPct + '%');
   });
   animateNumber(document.getElementById('goalEarned'), plan.earned, fmtMoney);
   document.getElementById('goalTargetLabel').textContent = fmtMoney(plan.goal);
@@ -637,16 +638,42 @@ function renderGoal() {
 
     const todayBox = document.getElementById('goalTodayBox');
     const valueEl = document.getElementById('goalTodayValue');
-    todayBox.classList.toggle('next-shift', !plan.todayIsWork);
-    valueEl.classList.toggle('next-shift', !plan.todayIsWork);
-    document.getElementById('goalTodayLabel').textContent =
-      'Потрібно ' + (plan.todayIsWork ? 'сьогодні' : 'у наступну зміну');
-    valueEl.textContent = fmtMoney(Math.round(plan.perDayTarget));
+    const labelEl = document.getElementById('goalTodayLabel');
+    const partsRow = document.getElementById('goalPartsRow');
+    todayBox.classList.remove('next-shift', 'day-exceeded');
+    valueEl.classList.remove('next-shift', 'day-exceeded');
 
-    const parts = partsForAmount(plan.perDayTarget);
-    document.getElementById('goalPartsRow').innerHTML = parts.map(p =>
-      '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
-    ).join('<span class="goal-part-or">або</span>');
+    if (plan.todayIsWork) {
+      // Live figure: subtract whatever's already been recorded today, so
+      // this number actually moves down as entries come in — and flips
+      // to a green "over target" state instead of just hitting zero.
+      const earnedToday = dayTotal(dateKey(plan.y, plan.m, plan.today));
+      const remainingToday = plan.perDayTarget - earnedToday;
+
+      if (remainingToday <= 0) {
+        todayBox.classList.add('day-exceeded');
+        valueEl.classList.add('day-exceeded');
+        labelEl.textContent = 'Сьогодні зароблено більше норми';
+        valueEl.textContent = '+' + fmtMoney(Math.abs(remainingToday));
+        partsRow.innerHTML = '';
+      } else {
+        labelEl.textContent = 'Лишилось заробити сьогодні';
+        valueEl.textContent = fmtMoney(Math.round(remainingToday));
+        const parts = partsForAmount(remainingToday);
+        partsRow.innerHTML = parts.map(p =>
+          '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
+        ).join('<span class="goal-part-or">або</span>');
+      }
+    } else {
+      todayBox.classList.add('next-shift');
+      valueEl.classList.add('next-shift');
+      labelEl.textContent = 'Потрібно у наступну зміну';
+      valueEl.textContent = fmtMoney(Math.round(plan.perDayTarget));
+      const parts = partsForAmount(plan.perDayTarget);
+      partsRow.innerHTML = parts.map(p =>
+        '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
+      ).join('<span class="goal-part-or">або</span>');
+    }
 
     renderGoalUpcoming(plan);
   }
@@ -663,13 +690,28 @@ function renderGoalUpcoming(plan) {
     const isWork = getStatus(plan.y, plan.m, d) === 'work';
     const isToday = d === plan.today;
     const key = dateKey(plan.y, plan.m, d);
-    const already = !isToday && dayTotal(key) > 0;
+    const dayEarned = dayTotal(key);
     let valueHtml;
-    if (!isWork) valueHtml = 'вих.';
-    else if (already) valueHtml = '✓ ' + fmtMoneyShort(Math.round(dayTotal(key))) + '₴';
-    else valueHtml = fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴';
+    let isDone = !isToday && dayEarned > 0;
+
+    if (!isWork) {
+      valueHtml = 'вих.';
+    } else if (isToday) {
+      const remainingToday = plan.perDayTarget - dayEarned;
+      if (remainingToday <= 0) {
+        valueHtml = '✓ ' + fmtMoneyShort(Math.round(dayEarned)) + '₴';
+        isDone = true;
+      } else {
+        valueHtml = fmtMoneyShort(Math.round(remainingToday)) + '₴';
+      }
+    } else if (isDone) {
+      valueHtml = '✓ ' + fmtMoneyShort(Math.round(dayEarned)) + '₴';
+    } else {
+      valueHtml = fmtMoneyShort(Math.round(plan.perDayTarget)) + '₴';
+    }
+
     chipsHtml +=
-      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (already ? ' chip-done' : '') + '">' +
+      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isDone ? ' chip-done' : '') + '">' +
         '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
         '<p class="chip-val">' + valueHtml + '</p>' +
       '</div>';
@@ -825,10 +867,27 @@ function updatePreview() {
   }
 }
 
+// Tallies quantity per product code for the currently open day, so
+// there's no need to manually add up 5+ entries at the end of a shift.
+function renderDayProductSummary() {
+  const wrap = document.getElementById('dayProductSummary');
+  const entries = earningsData[activeDateKey] || [];
+  const totals = {};
+  const order = [];
+  entries.forEach(e => {
+    if (!(e.code in totals)) { totals[e.code] = 0; order.push(e.code); }
+    totals[e.code] += e.qty;
+  });
+  wrap.innerHTML = order.map(code =>
+    '<span class="day-summary-chip"><b>' + totals[code] + '</b> шт · ' + code + '</span>'
+  ).join('');
+}
+
 function renderEntryList() {
   const list = document.getElementById('entryList');
   const entries = earningsData[activeDateKey] || [];
   list.innerHTML = '';
+  renderDayProductSummary();
   if (entries.length === 0) {
     list.innerHTML = '<p class="empty-note">Ще немає записів за цей день</p>';
   } else {

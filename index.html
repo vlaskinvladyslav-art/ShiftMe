@@ -82,7 +82,7 @@
           <button class="goal-icon-btn" id="goalEditBtn" title="Змінити ціль">✎</button>
         </div>
       </div>
-      <div class="goal-progress-track"><div class="goal-progress-fill" id="goalFill"></div></div>
+      <div class="goal-progress-track"><div class="goal-progress-fill" id="goalFill"></div><div class="goal-progress-shimmer" id="goalShimmer"></div></div>
       <div class="goal-progress-nums">
         <span><b id="goalEarned">0 ₴</b> / <span id="goalTargetLabel">0 ₴</span></span>
         <span class="goal-progress-pct" id="goalPct">0%</span>
@@ -167,7 +167,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.4.1 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.4.2 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -180,6 +180,7 @@
     <p class="modal-status" id="modalStatus"></p>
 
     <div class="entry-list" id="entryList"></div>
+    <div class="day-product-summary" id="dayProductSummary"></div>
     <div class="day-total-row">
       <span>Разом за день</span>
       <b id="dayTotal">0 ₴</b>
