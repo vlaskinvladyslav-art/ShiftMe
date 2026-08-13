@@ -44,7 +44,7 @@
     <p class="status-value" id="statusValue">—</p>
 
     <div class="status-next-box" id="statusNextBox">
-      <img class="status-next-icon" src="calendar.png">
+      <img class="status-next-icon" src="calendar.png" alt="">
       <div class="status-next-text">
         <p class="status-next-label" id="statusNextLabel">—</p>
         <p class="status-next-value" id="statusNextValue">—</p>
@@ -61,7 +61,12 @@
 
   <div class="goal-card" id="goalCard">
     <div class="goal-setup goal-empty" id="goalSetup">
-      <p class="goal-empty-icon" id="goalSetupIcon"></p>
+      <div class="goal-ripple" id="goalSetupIcon">
+        <span class="goal-ripple-ring"></span>
+        <span class="goal-ripple-ring"></span>
+        <span class="goal-ripple-ring"></span>
+        <span class="goal-ripple-dot"></span>
+      </div>
       <p class="goal-empty-title" id="goalSetupTitle">Встанови ціль на місяць</p>
       <p class="goal-empty-sub" id="goalSetupSub">Порахуємо, скільки треба заробляти щодня, щоб дійти суми</p>
       <div class="goal-input-row">
@@ -121,8 +126,8 @@
   </div>
 
   <div class="coming-soon-banner">
-    <p class="coming-soon-title"> Процес розробки</p>
-    <p class="coming-soon-sub">Застосунок у активній розробці. Створюйте резервні копії для збереження записів</p>
+    <p class="coming-soon-title">Процес розробки</p>
+    <p class="coming-soon-sub">Застосунок перебуває у активній розробці. Не забувайте створювати резервні копії для збереження записів</p>
   </div>
 
   <p class="section-title">Статистика</p>
@@ -162,7 +167,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.3.2 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.4.1 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
