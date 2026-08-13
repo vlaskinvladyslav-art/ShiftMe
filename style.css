@@ -796,19 +796,28 @@ h1 span { color: var(--work); }
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.45) 50%, transparent 100%);
-  background-size: 55% 100%;
+  background: linear-gradient(
+    90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.35) 50%, 
+    transparent 100%
+  );
+  background-size: 30% 100%;
   background-repeat: no-repeat;
-  background-position: -60% 0;
-  animation: goalProgressShimmer 2.4s ease-in-out infinite;
+  background-position: -150% 0;
+  animation: goalProgressShimmer 3s ease-in-out infinite;
   clip-path: inset(0 calc(100% - var(--fill-pct, 0%)) 0 0);
-  transition: clip-path 0.7s cubic-bezier(0.22, 0.9, 0.32, 1);
-}
-@keyframes goalProgressShimmer {
-  0% { background-position: -60% 0; }
-  100% { background-position: 160% 0; }
+  transition: clip-path 0.9s cubic-bezier(0.22, 0.9, 0.32, 1);
 }
 
+@keyframes goalProgressShimmer {
+  0% {
+    background-position: -120% 0;
+  }
+  100% {
+    background-position: 180% 0;
+  }
+}
 .goal-progress-nums {
   display: flex;
   justify-content: space-between;
