@@ -190,6 +190,7 @@ function renderToday() {
   card.className = 'status-card is-' + status;
   document.getElementById('statusValue').textContent = status === 'work' ? 'Робочий день' : 'Вихідний';
   document.getElementById('statusIcon').src = status === 'work' ? 'workDay.png' : 'offDay.png';
+  document.getElementById('statusIcon').alt = status === 'work' ? 'Робочий день' : 'Вихідний день';
 
   let nd = new Date(Date.UTC(y, m, d));
   let cur = status;
@@ -835,9 +836,12 @@ function renderEntryList() {
       const row = document.createElement('div');
       row.className = 'entry-row';
       row.innerHTML =
-        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт' + (fmtTime(e.time) ? ' · ' + fmtTime(e.time) : '') + '</span></div>' +
-        '<div class="entry-row-right"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
-        '<button class="entry-del" data-idx="' + idx + '">✕</button></div>';
+        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
+        '<div class="entry-row-right">' +
+          (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
+          '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
+          '<button class="entry-del" data-idx="' + idx + '">✕</button></div>' +
+        '</div>';
       list.appendChild(row);
     });
     list.querySelectorAll('.entry-del').forEach(btn => {
