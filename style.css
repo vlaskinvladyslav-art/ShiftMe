@@ -870,7 +870,38 @@ h1 span { color: var(--work); }
   margin-bottom: 14px;
 }
 .goal-today-value.next-shift { color: var(--off); }
-.goal-today-value.day-exceeded { color: var(--off); }
+.goal-today-value.day-exceeded {
+  color: var(--off);
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.goal-today-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+.goal-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+}
+.goal-entry-row b {
+  color: var(--text);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+}
+.goal-entry-row .goal-entry-time { margin-left: auto; }
 
 .goal-today-parts-row { display: flex; align-items: stretch; gap: 8px; }
 .goal-part-chip {
@@ -912,21 +943,52 @@ h1 span { color: var(--work); }
 }
 
 .goal-upcoming {
+  position: relative;
   display: flex;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding: 8px 2px 4px;
+}
+.goal-upcoming::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--line), transparent 92%);
+  z-index: 0;
 }
 .goal-chip {
+  position: relative;
+  z-index: 1;
   flex: 0 0 auto;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 7px 10px;
+  border-radius: 14px;
+  padding: 8px 12px;
   text-align: center;
-  min-width: 58px;
+  min-width: 60px;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: goalChipIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
 }
-.goal-chip.chip-today { border-color: var(--money); }
+.goal-chip.chip-today {
+  border-color: var(--money);
+  background: rgba(244, 201, 93, 0.08);
+  animation: goalChipIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1) forwards, goalChipTodayPulse 2.4s ease-in-out 0.4s infinite;
+}
+@keyframes goalChipIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes goalChipTodayPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(244, 201, 93, 0); transform: scale(1); }
+  50% { box-shadow: 0 0 14px rgba(244, 201, 93, 0.35); transform: scale(1.05); }
+}
+.goal-chip.chip-off { border-style: dashed; opacity: 0.7; }
+.goal-chip.chip-off.chip-today { opacity: 1; }
+.goal-chip.chip-done { border-color: var(--off); background: rgba(67, 198, 172, 0.08); }
 .goal-chip .chip-day {
   font-size: 9.5px;
   color: var(--muted);
@@ -939,8 +1001,7 @@ h1 span { color: var(--work); }
   font-family: 'Space Grotesk', sans-serif;
   color: var(--text);
 }
-.goal-chip.chip-off .chip-val { color: var(--muted); font-weight: 500; }
-.goal-chip.chip-done { border-color: var(--off); }
+.goal-chip.chip-off .chip-val { color: var(--muted); font-weight: 500; font-style: italic; }
 .goal-chip.chip-done .chip-val { color: var(--off); }
 
 .goal-remove {

@@ -1,6 +1,6 @@
 // Bump this when index.html / style.css / script.js change, so the
 // updated files get re-cached instead of serving stale ones forever.
-const CACHE_NAME = 'shiftme-v0-4-1-alpha';
+const CACHE_NAME = 'shiftme-v0-4-4-alpha';
 const CORE_ASSETS = [
   './',
   './index.html',

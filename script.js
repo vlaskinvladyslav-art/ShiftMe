@@ -571,9 +571,22 @@ function computeGoalPlan() {
   const y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const totalWorkDays = countWorkDaysInMonth(y, m);
-  const earned = monthEarnedSoFar(y, m);
+  const earned = monthEarnedSoFar(y, m); // whole month, including today — used for the overall progress bar
   const remaining = Math.max(0, goal - earned);
   const reached = earned >= goal;
+
+  const todayKey = dateKey(y, m, today);
+  const earnedToday = dayTotal(todayKey);
+
+  // The daily target must stay flat across a single day, no matter how
+  // much gets logged today — otherwise earning today's exact quota (or
+  // more) would retroactively shrink today's own remaining-target math,
+  // since today would still occupy a slot in the divisor below while its
+  // own earnings had already shrunk the numerator. So this version of
+  // "remaining" deliberately excludes today's own earnings; "залишок
+  // сьогодні" is computed once, separately, by simply subtracting
+  // earnedToday from this stable target — never fed back into it.
+  const remainingExcludingToday = Math.max(0, goal - (earned - earnedToday));
 
   // Two counts: every remaining work day (used to know if the month is
   // simply over), and only the ones that are still genuinely "open" — no
@@ -591,11 +604,11 @@ function computeGoalPlan() {
   }
   const workDaysLeft = openWorkDaysLeft > 0 ? openWorkDaysLeft : trueWorkDaysLeft;
 
-  const perDayTarget = workDaysLeft > 0 ? remaining / workDaysLeft : 0;
+  const perDayTarget = workDaysLeft > 0 ? remainingExcludingToday / workDaysLeft : 0;
   const todayIsWork = getStatus(y, m, today) === 'work';
   const progressPct = goal > 0 ? Math.min(100, (earned / goal) * 100) : 0;
 
-  return { goal, earned, remaining, totalWorkDays, workDaysLeft, trueWorkDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth };
+  return { goal, earned, remaining, totalWorkDays, workDaysLeft, trueWorkDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth, earnedToday };
 }
 
 function partsForAmount(amount) {
@@ -647,15 +660,25 @@ function renderGoal() {
       // Live figure: subtract whatever's already been recorded today, so
       // this number actually moves down as entries come in — and flips
       // to a green "over target" state instead of just hitting zero.
-      const earnedToday = dayTotal(dateKey(plan.y, plan.m, plan.today));
-      const remainingToday = plan.perDayTarget - earnedToday;
+      const remainingToday = plan.perDayTarget - plan.earnedToday;
+      const entriesRow = document.getElementById('goalTodayEntries');
 
       if (remainingToday <= 0) {
         todayBox.classList.add('day-exceeded');
         valueEl.classList.add('day-exceeded');
-        labelEl.textContent = 'Сьогодні зароблено більше норми';
+        labelEl.textContent = '✓ Сьогодні зароблено більше норми';
         valueEl.textContent = '+' + fmtMoney(Math.abs(remainingToday));
         partsRow.innerHTML = '';
+
+        if (entriesRow) {
+          const todayEntries = earningsData[dateKey(plan.y, plan.m, plan.today)] || [];
+          entriesRow.innerHTML = todayEntries.map(e =>
+            '<div class="goal-entry-row"><b>' + e.code + '</b><span>' + e.qty + ' шт</span>' +
+            (e.order ? '<span>№' + e.order + '</span>' : '') +
+            (fmtTime(e.time) ? '<span class="goal-entry-time">' + fmtTime(e.time) + '</span>' : '') +
+            '</div>'
+          ).join('');
+        }
       } else {
         labelEl.textContent = 'Лишилось заробити сьогодні';
         valueEl.textContent = fmtMoney(Math.round(remainingToday));
@@ -663,6 +686,7 @@ function renderGoal() {
         partsRow.innerHTML = parts.map(p =>
           '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
         ).join('<span class="goal-part-or">або</span>');
+        if (entriesRow) entriesRow.innerHTML = '';
       }
     } else {
       todayBox.classList.add('next-shift');
@@ -673,6 +697,8 @@ function renderGoal() {
       partsRow.innerHTML = parts.map(p =>
         '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
       ).join('<span class="goal-part-or">або</span>');
+      const entriesRow = document.getElementById('goalTodayEntries');
+      if (entriesRow) entriesRow.innerHTML = '';
     }
 
     renderGoalUpcoming(plan);
@@ -711,7 +737,7 @@ function renderGoalUpcoming(plan) {
     }
 
     chipsHtml +=
-      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isDone ? ' chip-done' : '') + '">' +
+      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isDone ? ' chip-done' : '') + '" style="animation-delay:' + (shown * 0.06).toFixed(2) + 's">' +
         '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
         '<p class="chip-val">' + valueHtml + '</p>' +
       '</div>';
