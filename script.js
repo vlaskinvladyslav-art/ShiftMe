@@ -673,7 +673,7 @@ function renderGoal() {
         if (entriesRow) {
           const todayEntries = earningsData[dateKey(plan.y, plan.m, plan.today)] || [];
           entriesRow.innerHTML = todayEntries.map(e =>
-            '<div class="goal-entry-row"><b>' + e.code + '</b><span>' + e.qty + ' шт</span>' +
+            '<div class="goal-entry-row"><span class="goal-entry-code">' + e.code + '</span><span>' + e.qty + ' шт</span>' +
             (e.order ? '<span>№' + e.order + '</span>' : '') +
             (fmtTime(e.time) ? '<span class="goal-entry-time">' + fmtTime(e.time) + '</span>' : '') +
             '</div>'

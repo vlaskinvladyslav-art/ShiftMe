@@ -882,6 +882,9 @@ h1 span { color: var(--work); }
   gap: 6px;
   max-height: 168px;
   overflow-y: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  margin-top: 2px;
 }
 .goal-entry-row {
   display: flex;
@@ -895,11 +898,18 @@ h1 span { color: var(--work); }
   font-family: 'JetBrains Mono', monospace;
   color: var(--muted);
 }
-.goal-entry-row b {
-  color: var(--text);
+.goal-entry-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(67, 198, 172, 0.14);
+  color: var(--off);
+  border-radius: 6px;
+  padding: 2px 7px;
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 11.5px;
+  flex-shrink: 0;
 }
 .goal-entry-row .goal-entry-time { margin-left: auto; }
 
@@ -945,16 +955,16 @@ h1 span { color: var(--work); }
 .goal-upcoming {
   position: relative;
   display: flex;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
-  padding: 8px 2px 4px;
+  padding: 14px 4px 6px;
 }
 .goal-upcoming::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 8px;
-  right: 8px;
+  top: 19px;
+  left: 10px;
+  right: 10px;
   height: 1px;
   background: linear-gradient(90deg, var(--line), transparent 92%);
   z-index: 0;
@@ -966,27 +976,57 @@ h1 span { color: var(--work); }
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 8px 12px;
+  padding: 10px 12px 9px;
   text-align: center;
-  min-width: 60px;
+  min-width: 62px;
   opacity: 0;
   transform: translateY(6px);
   animation: goalChipIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.goal-chip::before {
+  /* Timeline dot marking this day's position on the connecting line */
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  margin-left: -2.5px;
+  border-radius: 50%;
+  background: var(--line);
 }
 .goal-chip.chip-today {
   border-color: var(--money);
   background: rgba(244, 201, 93, 0.08);
-  animation: goalChipIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1) forwards, goalChipTodayPulse 2.4s ease-in-out 0.4s infinite;
+}
+.goal-chip.chip-today::before { background: var(--money); }
+.goal-chip.chip-done::before { background: var(--off); }
+
+/* The glow itself never changes shape or blur — only its opacity animates,
+   which is smooth on every device. Animating box-shadow's blur radius
+   directly (the old approach) made browsers pop between "no shadow" and
+   "full shadow" without a clean tween, which read as a square flash. */
+.goal-chip.chip-today::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 17px;
+  box-shadow: 0 0 16px 2px rgba(244, 201, 93, 0.45);
+  opacity: 0;
+  animation: goalChipGlow 2.4s ease-in-out 0.5s infinite;
+  pointer-events: none;
+  z-index: -1;
 }
 @keyframes goalChipIn {
   from { opacity: 0; transform: translateY(6px) scale(0.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes goalChipTodayPulse {
-  0%, 100% { box-shadow: 0 0 0 rgba(244, 201, 93, 0); transform: scale(1); }
-  50% { box-shadow: 0 0 14px rgba(244, 201, 93, 0.35); transform: scale(1.05); }
+@keyframes goalChipGlow {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 1; }
 }
-.goal-chip.chip-off { border-style: dashed; opacity: 0.7; }
+.goal-chip.chip-off { border-style: dashed; opacity: 0.7; box-shadow: none; }
 .goal-chip.chip-off.chip-today { opacity: 1; }
 .goal-chip.chip-done { border-color: var(--off); background: rgba(67, 198, 172, 0.08); }
 .goal-chip .chip-day {
