@@ -1015,7 +1015,7 @@ function updateLeaveToggleButton(status) {
   }
   btn.style.display = '';
   const leave = isLeaveDay(activeDateKey);
-  btn.textContent = leave ? '✕ Скасувати «вихідний за свій рахунок»' : '🏖 Позначити вихідним за свій рахунок';
+  btn.textContent = leave ? '✕ Скасувати «вихідний за свій рахунок»' : 'Позначити вихідним за свій рахунок';
   btn.classList.toggle('active', leave);
 }
 
