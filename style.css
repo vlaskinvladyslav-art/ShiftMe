@@ -368,6 +368,11 @@ h1 span { color: var(--work); }
 }
 .day-cell.work { background: var(--work-dim); color: var(--work); }
 .day-cell.off { background: var(--off-dim); color: var(--off); }
+.day-cell.leave {
+  background: rgba(180, 140, 255, 0.1);
+  color: #c9a8ff;
+  border: 1px dashed rgba(180, 140, 255, 0.5);
+}
 .day-cell.empty { background: transparent; cursor: default; }
 .day-cell.today {
   outline: 2px solid var(--today-ring);
@@ -388,6 +393,11 @@ h1 span { color: var(--work); }
   margin-top: 1px;
   letter-spacing: -0.02em;
 }
+.day-cell .leave-mark {
+  font-size: 9px;
+  margin-top: 1px;
+  line-height: 1;
+}
 
 .legend {
   display: flex;
@@ -402,6 +412,7 @@ h1 span { color: var(--work); }
 .legend-swatch.work { background: var(--work); }
 .legend-swatch.off { background: var(--off); }
 .legend-swatch.money { background: var(--money); }
+.legend-swatch.leave { background: #c9a8ff; }
 
 .month-total {
   margin-top: 14px;
@@ -1028,6 +1039,12 @@ h1 span { color: var(--work); }
 }
 .goal-chip.chip-off { border-style: dashed; opacity: 0.7; box-shadow: none; }
 .goal-chip.chip-off.chip-today { opacity: 1; }
+.goal-chip.chip-leave {
+  border-style: dashed;
+  border-color: rgba(180, 140, 255, 0.5);
+  background: rgba(180, 140, 255, 0.08);
+}
+.goal-chip.chip-leave .chip-val { color: #c9a8ff; font-weight: 500; font-style: italic; }
 .goal-chip.chip-done { border-color: var(--off); background: rgba(67, 198, 172, 0.08); }
 .goal-chip .chip-day {
   font-size: 9.5px;
@@ -1313,13 +1330,52 @@ h1 span { color: var(--work); }
   text-align: center;
   margin-bottom: 4px;
 }
+.modal-leave-note {
+  display: none;
+  background: rgba(180, 140, 255, 0.12);
+  color: #c9a8ff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  text-align: center;
+  margin-bottom: 4px;
+}
 .modal.day-off .form-label,
 .modal.day-off .product-choice,
 .modal.day-off .product-add-form,
 .modal.day-off .qty-row,
 .modal.day-off .preview-line,
-.modal.day-off .submit-btn { display: none; }
+.modal.day-off .submit-btn,
+.modal.day-leave .form-label,
+.modal.day-leave .product-choice,
+.modal.day-leave .product-add-form,
+.modal.day-leave .qty-row,
+.modal.day-leave .preview-line,
+.modal.day-leave .submit-btn { display: none; }
 .modal.day-off .modal-off-note { display: block; }
+.modal.day-leave .modal-leave-note { display: block; }
+
+.leave-toggle-btn {
+  display: block;
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 9px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+.leave-toggle-btn:active { background: var(--line); }
+.leave-toggle-btn.active {
+  background: rgba(180, 140, 255, 0.12);
+  border-style: solid;
+  border-color: #c9a8ff;
+  color: #c9a8ff;
+}
+.modal.day-off .leave-toggle-btn { display: none; }
 
 .add-earn-btn:disabled {
   opacity: 0.45;

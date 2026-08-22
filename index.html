@@ -124,6 +124,7 @@
     <div class="legend-item"><span class="legend-swatch work"></span><span>Робочий</span></div>
     <div class="legend-item"><span class="legend-swatch off"></span><span>Вихідний</span></div>
     <div class="legend-item"><span class="legend-swatch money"></span><span>Заробіток</span></div>
+    <div class="legend-item"><span class="legend-swatch leave"></span><span>За свій рахунок</span></div>
   </div>
 
   <div class="coming-soon-banner">
@@ -168,7 +169,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.4.5 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.5.0 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -179,6 +180,7 @@
       <button class="modal-close" id="modalClose">✕</button>
     </div>
     <p class="modal-status" id="modalStatus"></p>
+    <button class="leave-toggle-btn" id="leaveToggleBtn" type="button"></button>
 
     <div class="entry-list" id="entryList"></div>
     <div class="day-product-summary" id="dayProductSummary"></div>
@@ -188,6 +190,7 @@
     </div>
 
     <p class="modal-off-note" id="modalOffNote">Вихідний день — запис заробітку недоступний.</p>
+    <p class="modal-leave-note" id="modalLeaveNote">🏖 Вихідний за свій рахунок — заробіток за цей день не рахується в статистику й ціль.</p>
 
     <p class="form-label">Виріб</p>
     <div class="product-choice" id="productChoice">

@@ -68,6 +68,31 @@ function deleteCustomProduct(code) {
 function allProducts() { return CORE_PRODUCTS.concat(customProducts); }
 function findProduct(code) { return allProducts().find(p => p.code === code); }
 
+// ---------- Unpaid leave days ("вихідний за свій рахунок") ----------
+// A day that's a scheduled work day per the 3/3 rotation, but manually
+// marked as taken off without pay (air raid alerts, personal reasons,
+// etc). It shouldn't count toward earnings pacing or the trend chart.
+const LEAVE_KEY = 'shiftTrackerLeaveDays';
+let leaveDays = {}; // { 'YYYY-MM-DD': true }
+
+function loadLeaveDays() {
+  try {
+    const raw = localStorage.getItem(LEAVE_KEY);
+    leaveDays = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    leaveDays = {};
+  }
+}
+function saveLeaveDays() {
+  try {
+    localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveDays));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function isLeaveDay(key) { return !!leaveDays[key]; }
+
 function pad(n) { return String(n).padStart(2, '0'); }
 function fmtTime(iso) {
   if (!iso) return '';
@@ -263,16 +288,19 @@ function renderCalendar() {
     const s = getStatus(viewYear, viewMonth, day);
     const key = dateKey(viewYear, viewMonth, day);
     const total = dayTotal(key);
+    const leave = s === 'work' && isLeaveDay(key);
     monthSum += total;
 
     const cell = document.createElement('button');
     cell.type = 'button';
-    cell.className = 'day-cell ' + s;
+    cell.className = 'day-cell ' + s + (leave ? ' leave' : '');
     const isToday = viewYear === now.getFullYear() && viewMonth === now.getMonth() && day === now.getDate();
     if (isToday) cell.classList.add('today');
 
     let inner = day;
-    if (total > 0) {
+    if (leave) {
+      inner += '<span class="leave-mark">🏖</span>';
+    } else if (total > 0) {
       inner += '<span class="earn-tag">' + fmtMoneyShort(total) + '₴</span>';
     } else {
       inner += '<span class="dot"></span>';
@@ -332,15 +360,16 @@ function last14Days() {
 // Used for the chart specifically: off days always have 0 earned (nothing
 // to earn), so mixing them in made the line dip in a way that had nothing
 // to do with performance. This walks backward from today and only keeps
-// work days, so the chart reflects actual shifts worked.
+// actually-worked days — real off days AND unpaid-leave days are both
+// skipped, so the chart reflects actual shifts worked, not schedule gaps.
 function last14WorkDays() {
   const days = [];
   const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let guard = 0;
   while (days.length < 14 && guard < 120) {
     const y = cursor.getFullYear(), m = cursor.getMonth(), d = cursor.getDate();
-    if (getStatus(y, m, d) === 'work') {
-      const key = dateKey(y, m, d);
+    const key = dateKey(y, m, d);
+    if (getStatus(y, m, d) === 'work' && !isLeaveDay(key)) {
       days.unshift({ key, date: new Date(y, m, d), total: dayTotal(key) });
     }
     cursor.setDate(cursor.getDate() - 1);
@@ -594,18 +623,21 @@ function computeGoalPlan() {
   // it already has something logged, since the shift isn't over yet.
   // Splitting the remaining amount only across open days is what makes
   // the compensation logic correct: a day that already has money on it
-  // shouldn't also get a slice of what's still owed.
+  // shouldn't also get a slice of what's still owed. Days marked as
+  // unpaid leave are skipped entirely — they're not expected to earn
+  // anything, so they shouldn't dilute the pace of the days that are.
   let trueWorkDaysLeft = 0;
   let openWorkDaysLeft = 0;
   for (let d = today; d <= daysInMonth; d++) {
     if (getStatus(y, m, d) !== 'work') continue;
+    if (isLeaveDay(dateKey(y, m, d))) continue;
     trueWorkDaysLeft++;
     if (d === today || dayTotal(dateKey(y, m, d)) === 0) openWorkDaysLeft++;
   }
   const workDaysLeft = openWorkDaysLeft > 0 ? openWorkDaysLeft : trueWorkDaysLeft;
 
   const perDayTarget = workDaysLeft > 0 ? remainingExcludingToday / workDaysLeft : 0;
-  const todayIsWork = getStatus(y, m, today) === 'work';
+  const todayIsWork = getStatus(y, m, today) === 'work' && !isLeaveDay(todayKey);
   const progressPct = goal > 0 ? Math.min(100, (earned / goal) * 100) : 0;
 
   return { goal, earned, remaining, totalWorkDays, workDaysLeft, trueWorkDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth, earnedToday };
@@ -713,14 +745,18 @@ function renderGoalUpcoming(plan) {
   let chipsHtml = '';
   let shown = 0;
   for (let d = plan.today; d <= plan.daysInMonth && shown < 6; d++) {
-    const isWork = getStatus(plan.y, plan.m, d) === 'work';
-    const isToday = d === plan.today;
     const key = dateKey(plan.y, plan.m, d);
+    const scheduledWork = getStatus(plan.y, plan.m, d) === 'work';
+    const isLeave = scheduledWork && isLeaveDay(key);
+    const isWork = scheduledWork && !isLeave;
+    const isToday = d === plan.today;
     const dayEarned = dayTotal(key);
     let valueHtml;
     let isDone = !isToday && dayEarned > 0;
 
-    if (!isWork) {
+    if (isLeave) {
+      valueHtml = 'своя';
+    } else if (!isWork) {
       valueHtml = 'вих.';
     } else if (isToday) {
       const remainingToday = plan.perDayTarget - dayEarned;
@@ -737,7 +773,7 @@ function renderGoalUpcoming(plan) {
     }
 
     chipsHtml +=
-      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isDone ? ' chip-done' : '') + '" style="animation-delay:' + (shown * 0.06).toFixed(2) + 's">' +
+      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isLeave ? ' chip-leave' : '') + (isDone ? ' chip-done' : '') + '" style="animation-delay:' + (shown * 0.06).toFixed(2) + 's">' +
         '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
         '<p class="chip-val">' + valueHtml + '</p>' +
       '</div>';
@@ -958,6 +994,8 @@ function openModal(y, m, d) {
   document.getElementById('orderInput').value = '';
   document.getElementById('saveNote').textContent = '';
   document.getElementById('modalBox').classList.toggle('day-off', status !== 'work');
+  document.getElementById('modalBox').classList.toggle('day-leave', status === 'work' && isLeaveDay(activeDateKey));
+  updateLeaveToggleButton(status);
   document.getElementById('productAddForm').style.display = 'none';
   document.getElementById('productChoice').style.display = '';
   showAllProducts = false;
@@ -966,6 +1004,43 @@ function openModal(y, m, d) {
   renderEntryList();
   document.getElementById('overlay').classList.add('open');
 }
+
+// Shows/labels the "вихідний за свій рахунок" toggle — only relevant on
+// scheduled work days; a real off-day already has nothing to toggle.
+function updateLeaveToggleButton(status) {
+  const btn = document.getElementById('leaveToggleBtn');
+  if (status !== 'work') {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  const leave = isLeaveDay(activeDateKey);
+  btn.textContent = leave ? '✕ Скасувати «вихідний за свій рахунок»' : '🏖 Позначити вихідним за свій рахунок';
+  btn.classList.toggle('active', leave);
+}
+
+document.getElementById('leaveToggleBtn').addEventListener('click', () => {
+  const key = activeDateKey;
+  const turningOn = !isLeaveDay(key);
+  if (turningOn) {
+    const hasEntries = (earningsData[key] || []).length > 0;
+    if (hasEntries && !confirm('У цей день вже є записи заробітку. Все одно позначити його вихідним за свій рахунок?')) return;
+    leaveDays[key] = true;
+  } else {
+    delete leaveDays[key];
+  }
+  saveLeaveDays();
+
+  const [ey, em, ed] = key.split('-').map(Number);
+  const status = getStatus(ey, em - 1, ed);
+  document.getElementById('modalBox').classList.toggle('day-leave', status === 'work' && isLeaveDay(key));
+  updateLeaveToggleButton(status);
+
+  renderCalendar();
+  renderToday();
+  renderStats();
+  renderGoal();
+});
 
 function closeModal() {
   document.getElementById('overlay').classList.remove('open');
@@ -1034,6 +1109,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   loadEarnings();
   loadGoals();
   loadCustomProducts();
+  loadLeaveDays();
 
   initGoalCardListeners();
   initCoreProductTiles();
