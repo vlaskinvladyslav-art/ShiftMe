@@ -196,6 +196,7 @@ function importDataFromFile(file) {
       renderCalendar();
       renderStats();
       renderGoal();
+      renderTodayEntries();
       note.textContent = 'Дані імпортовано';
     } catch (err) {
       note.textContent = 'Помилка: файл не схожий на коректний бекап';
@@ -265,6 +266,34 @@ function renderToday() {
     addBtn.disabled = true;
     addBtn.textContent = 'Сьогодні вихідний — запис недоступний';
   }
+}
+
+// Always visible regardless of any goal being set or its progress — a
+// plain, ungated log of today's records, newest first, so the newest
+// entry always lands right at the top the moment it's saved.
+function renderTodayEntries() {
+  const wrap = document.getElementById('todayEntriesList');
+  const todayKey = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+  const entries = (earningsData[todayKey] || []).slice().reverse();
+
+  if (entries.length === 0) {
+    wrap.innerHTML = '<p class="empty-note">Ще немає записів за сьогодні</p>';
+    return;
+  }
+
+  wrap.innerHTML = entries.map(e =>
+    '<div class="today-entry-row">' +
+      '<span class="today-entry-code">' + e.code + '</span>' +
+      '<span>' + e.qty + ' шт</span>' +
+      (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
+      (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
+      '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
+    '</div>'
+  ).join('');
+
+  wrap.querySelectorAll('.today-entry-row').forEach(row => {
+    row.addEventListener('click', () => openModal(now.getFullYear(), now.getMonth(), now.getDate()));
+  });
 }
 
 function renderCalendar() {
@@ -693,7 +722,6 @@ function renderGoal() {
       // this number actually moves down as entries come in — and flips
       // to a green "over target" state instead of just hitting zero.
       const remainingToday = plan.perDayTarget - plan.earnedToday;
-      const entriesRow = document.getElementById('goalTodayEntries');
 
       if (remainingToday <= 0) {
         todayBox.classList.add('day-exceeded');
@@ -701,16 +729,6 @@ function renderGoal() {
         labelEl.textContent = '✓ Сьогодні зароблено більше норми';
         valueEl.textContent = '+' + fmtMoney(Math.abs(remainingToday));
         partsRow.innerHTML = '';
-
-        if (entriesRow) {
-          const todayEntries = earningsData[dateKey(plan.y, plan.m, plan.today)] || [];
-          entriesRow.innerHTML = todayEntries.map(e =>
-            '<div class="goal-entry-row"><span class="goal-entry-code">' + e.code + '</span><span>' + e.qty + ' шт</span>' +
-            (e.order ? '<span>№' + e.order + '</span>' : '') +
-            (fmtTime(e.time) ? '<span class="goal-entry-time">' + fmtTime(e.time) + '</span>' : '') +
-            '</div>'
-          ).join('');
-        }
       } else {
         labelEl.textContent = 'Лишилось заробити сьогодні';
         valueEl.textContent = fmtMoney(Math.round(remainingToday));
@@ -718,7 +736,6 @@ function renderGoal() {
         partsRow.innerHTML = parts.map(p =>
           '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
         ).join('<span class="goal-part-or">або</span>');
-        if (entriesRow) entriesRow.innerHTML = '';
       }
     } else {
       todayBox.classList.add('next-shift');
@@ -729,8 +746,6 @@ function renderGoal() {
       partsRow.innerHTML = parts.map(p =>
         '<div class="goal-part-chip"><b>' + p.qty + '</b><span>шт (' + p.code + ')</span></div>'
       ).join('<span class="goal-part-or">або</span>');
-      const entriesRow = document.getElementById('goalTodayEntries');
-      if (entriesRow) entriesRow.innerHTML = '';
     }
 
     renderGoalUpcoming(plan);
@@ -934,15 +949,54 @@ function updatePreview() {
 function renderDayProductSummary() {
   const wrap = document.getElementById('dayProductSummary');
   const entries = earningsData[activeDateKey] || [];
-  const totals = {};
-  const order = [];
+
+  if (entries.length === 0) {
+    wrap.innerHTML = '';
+    return;
+  }
+
+  // Detail: group by (code, order) — same code but different order stays
+  // separate, same code+order from multiple entries gets summed together.
+  const groups = {};
+  const groupOrder = [];
   entries.forEach(e => {
-    if (!(e.code in totals)) { totals[e.code] = 0; order.push(e.code); }
-    totals[e.code] += e.qty;
+    const gKey = e.code + '|' + (e.order || '');
+    if (!(gKey in groups)) {
+      groups[gKey] = { code: e.code, order: e.order || null, qty: 0 };
+      groupOrder.push(gKey);
+    }
+    groups[gKey].qty += e.qty;
   });
-  wrap.innerHTML = order.map(code =>
-    '<span class="day-summary-chip"><b>' + totals[code] + '</b> шт · ' + code + '</span>'
+
+  // Total: per product code across all orders, for a quick day-end tally.
+  const codeTotals = {};
+  const codeOrder = [];
+  entries.forEach(e => {
+    if (!(e.code in codeTotals)) { codeTotals[e.code] = 0; codeOrder.push(e.code); }
+    codeTotals[e.code] += e.qty;
+  });
+
+  const groupsHtml = groupOrder.map(gKey => {
+    const g = groups[gKey];
+    return (
+      '<div class="day-summary-row">' +
+        '<span class="day-summary-qty"><b>' + g.qty + '</b> шт</span>' +
+        '<span class="day-summary-code">' + g.code + '</span>' +
+        (g.order
+          ? '<span class="day-summary-order">Зам. №' + g.order + '</span>'
+          : '<span class="day-summary-order muted">без замовлення</span>') +
+      '</div>'
+    );
+  }).join('');
+
+  const totalsHtml = codeOrder.map(code =>
+    '<span class="day-summary-chip"><b>' + codeTotals[code] + '</b> шт · ' + code + '</span>'
   ).join('');
+
+  wrap.innerHTML =
+    '<div class="day-summary-groups">' + groupsHtml + '</div>' +
+    '<p class="day-summary-total-label">Всього за день</p>' +
+    '<div class="day-summary-totals">' + totalsHtml + '</div>';
 }
 
 function renderEntryList() {
@@ -978,6 +1032,7 @@ function renderEntryList() {
         renderToday();
         renderStats();
         renderGoal();
+        renderTodayEntries();
       });
     });
   }
@@ -1015,7 +1070,7 @@ function updateLeaveToggleButton(status) {
   }
   btn.style.display = '';
   const leave = isLeaveDay(activeDateKey);
-  btn.textContent = leave ? '✕ Скасувати «вихідний за свій рахунок»' : 'Позначити вихідним за свій рахунок';
+  btn.textContent = leave ? '✕ Скасувати «вихідний за свій рахунок»' : '🏖 Позначити вихідним за свій рахунок';
   btn.classList.toggle('active', leave);
 }
 
@@ -1040,6 +1095,7 @@ document.getElementById('leaveToggleBtn').addEventListener('click', () => {
   renderToday();
   renderStats();
   renderGoal();
+  renderTodayEntries();
 });
 
 function closeModal() {
@@ -1074,6 +1130,7 @@ document.getElementById('submitEntry').addEventListener('click', () => {
   renderToday();
   renderStats();
   renderGoal();
+  renderTodayEntries();
 });
 
 document.getElementById('addEarnToday').addEventListener('click', () => {
@@ -1116,6 +1173,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
 
   renderToday();
   renderGoal();
+  renderTodayEntries();
 
   requestAnimationFrame(() => {
     renderCalendar();

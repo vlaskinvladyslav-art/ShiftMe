@@ -659,6 +659,60 @@ h1 span { color: var(--work); }
 .chart-line-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
 .chart-dot { opacity: 0; transform: scale(0); transform-box: fill-box; transform-origin: center; }
 
+/* ---------- Today's entries: always visible, independent of any goal ---------- */
+.today-entries-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.today-entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.today-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+.today-entry-row:active { transform: scale(0.98); background: var(--line); }
+.today-entry-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244, 201, 93, 0.14);
+  color: var(--money);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 11.5px;
+  flex-shrink: 0;
+}
+.today-entry-order { flex-shrink: 0; }
+.today-entry-time { flex-shrink: 0; }
+.today-entry-amount {
+  margin-left: auto;
+  color: var(--money);
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
 /* ---------- Goal card ---------- */
 .goal-card {
   background: var(--surface);
@@ -687,42 +741,54 @@ h1 span { color: var(--work); }
 .goal-card[data-state="no-shifts"] #goalNoShiftsMsg { display: block; }
 
 .goal-empty { text-align: center; padding: 6px 0; }
-.goal-ripple {
-  position: relative;
-  width: 56px;
-  height: 56px;
+
+/*
+  Контейнер-заглушка під PNG-картинку (див. HTML-коментар над ним).
+  Ці властивості підібрані саме так, щоб зображення БУДЬ-ЯКОГО реального
+  розміру коректно вписалось у відведене місце й не зсунуло сусідні
+  елементи (заголовок/підпис нижче):
+
+  .goal-setup-image — сам контейнер:
+    - width/height     фіксують місце під картинку заздалегідь, тому
+                        сторінка не "стрибає" в момент завантаження PNG
+    - display:flex + align/justify-content:center
+                        центрують картинку всередині, навіть якщо її
+                        пропорції не збігаються з контейнером
+
+  .goal-setup-image-el — сам тег <img> усередині:
+    - max-width: 100%   картинка ніколи не вилізе за межі контейнера
+                        по ширині, скільки б пікселів не було у файлі
+    - max-height: 100%  те саме по висоті
+    - width/height: auto зберігає власні пропорції зображення (не
+                        спотворює його, на відміну від жорсткого
+                        100%/100%)
+    - object-fit: contain додатковий страхувальний шар: якщо колись
+                        задаси контейнеру фіксовані width+height через
+                        CSS (а не auto), картинка все одно впишеться
+                        в рамку без обрізки й спотворення
+    - display: block    прибирає “примарний” відступ знизу, який
+                        браузери додають під <img> за замовчуванням
+                        (вона поводиться як текстовий символ, доки
+                        не поставити display:block)
+*/
+.goal-setup-image {
+  width: 100%;
+  max-width: 120px;
+  height: 64px;
   margin: 4px auto 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.goal-ripple-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--money);
-  box-shadow: 0 0 10px rgba(244, 201, 93, 0.65);
-  position: relative;
-  z-index: 1;
+.goal-setup-image-el {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
 }
-.goal-ripple-ring {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 9px;
-  height: 9px;
-  margin: -4.5px 0 0 -4.5px;
-  border-radius: 50%;
-  border: 1.5px solid var(--money);
-  opacity: 0;
-  animation: goalRippleExpand 2.4s ease-out infinite;
-}
-.goal-ripple-ring:nth-child(2) { animation-delay: 0.8s; }
-.goal-ripple-ring:nth-child(3) { animation-delay: 1.6s; }
-@keyframes goalRippleExpand {
-  0% { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; opacity: 0.6; border-width: 1.5px; }
-  100% { width: 56px; height: 56px; margin: -28px 0 0 -28px; opacity: 0; border-width: 0.5px; }
-}
+
 .goal-empty-title {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
@@ -886,43 +952,6 @@ h1 span { color: var(--work); }
   font-size: 22px;
   margin-bottom: 8px;
 }
-
-.goal-today-entries {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 168px;
-  overflow-y: auto;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
-  margin-top: 2px;
-}
-.goal-entry-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 7px 10px;
-  font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--muted);
-}
-.goal-entry-code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(67, 198, 172, 0.14);
-  color: var(--off);
-  border-radius: 6px;
-  padding: 2px 7px;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 700;
-  font-size: 11.5px;
-  flex-shrink: 0;
-}
-.goal-entry-row .goal-entry-time { margin-left: auto; }
 
 .goal-today-parts-row { display: flex; align-items: stretch; gap: 8px; }
 .goal-part-chip {
@@ -1201,10 +1230,55 @@ h1 span { color: var(--work); }
 .empty-note { font-size: 12px; color: var(--muted); text-align: center; padding: 10px 0; }
 
 .day-product-summary {
+  margin-bottom: 10px;
+}
+.day-summary-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.day-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 11.5px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+}
+.day-summary-qty b { color: var(--text); font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+.day-summary-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(244, 201, 93, 0.14);
+  color: var(--money);
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.day-summary-order { margin-left: auto; }
+.day-summary-order.muted { font-style: italic; opacity: 0.7; }
+
+.day-summary-total-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 6px;
+}
+.day-summary-totals {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 10px;
 }
 .day-summary-chip {
   background: var(--surface-2);
