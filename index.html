@@ -57,29 +57,20 @@
     </div>
     <div id="trendBadge" class="trend-badge" style="display:none;"></div>
     <button class="add-earn-btn" id="addEarnToday">+ Записати заробіток за сьогодні</button>
-  </div>
 
-  <div class="today-entries-card" id="todayEntriesCard">
-    <p class="section-title" style="margin-top:0;">Записи за сьогодні</p>
-    <div class="today-entries-list" id="todayEntriesList"></div>
+    <div class="today-entries-section" id="todayEntriesSection" style="display:none;">
+      <p class="today-entries-title">Записи за сьогодні</p>
+      <div class="today-entries-list" id="todayEntriesList"></div>
+    </div>
   </div>
 
   <div class="goal-card" id="goalCard">
     <div class="goal-setup goal-empty" id="goalSetup">
-      <!--
-        МІСЦЕ ДЛЯ КАРТИНКИ: сюди вставляється PNG-зображення замість
-        колишньої анімації "острівка" (кола-хвилі). Щоб додати картинку:
-        1. Постав файл у корінь репозиторію поруч з іншими іконками
-           (workDay.png, calendar.png тощо), наприклад "goal-target.png".
-        2. Розкоментуй рядок нижче й підстав свою назву файлу:
-           <img class="goal-setup-image-el" src="goal-target.png" alt="">
-        3. Нічого більше міняти не треба — розміри й пропорції картинки
-           підлаштує CSS-клас .goal-setup-image-el (див. style.css),
-           так що вона не зламає верстку незалежно від свого реального
-           розміру.
-      -->
-      <div class="goal-setup-image" id="goalSetupIcon">
-        <!-- <img class="goal-setup-image-el" src="goal-target.png" alt=""> -->
+      <div class="goal-ripple" id="goalSetupIcon">
+        <span class="goal-ripple-ring"></span>
+        <span class="goal-ripple-ring"></span>
+        <span class="goal-ripple-ring"></span>
+        <span class="goal-ripple-dot"></span>
       </div>
       <p class="goal-empty-title" id="goalSetupTitle">Встанови ціль на місяць</p>
       <p class="goal-empty-sub" id="goalSetupSub">Порахуємо, скільки треба заробляти щодня, щоб дійти суми</p>
@@ -182,7 +173,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.6.0 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.6.1 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -203,7 +194,12 @@
     </div>
 
     <p class="modal-off-note" id="modalOffNote">Вихідний день — запис заробітку недоступний.</p>
-    <p class="modal-leave-note" id="modalLeaveNote">🏖 Вихідний за свій рахунок — заробіток за цей день не рахується в статистику й ціль.</p>
+    <p class="modal-leave-note" id="modalLeaveNote">
+      <!-- Заглушка під іконку: постав leaveDay.png у корінь репозиторію
+           поруч з workDay.png/offDay.png/calendar.png, і розкоментуй: -->
+      <!-- <img class="leave-note-icon" src="leaveDay.png" alt=""> -->
+      Вихідний за свій рахунок — заробіток за цей день не рахується в статистику й ціль.
+    </p>
 
     <p class="form-label">Виріб</p>
     <div class="product-choice" id="productChoice">

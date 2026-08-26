@@ -111,7 +111,7 @@ function fmtMoneyShort(v) {
 }
 function dayTotal(key) {
   const entries = earningsData[key] || [];
-  return entries.reduce((s, e) => s + e.amount, 0);
+  return entries.reduce((s, e) => s + (e.deleted ? 0 : e.amount), 0);
 }
 
 // ---------- Animated number helper ----------
@@ -158,6 +158,7 @@ function loadEarnings() {
     earningsData = {};
   }
   dataReady = true;
+  resumePendingPurges();
 }
 
 function saveEarnings() {
@@ -167,6 +168,51 @@ function saveEarnings() {
   } catch (e) {
     return false;
   }
+}
+
+// ---------- Soft delete ("phantom" entries) ----------
+// Deleting an entry doesn't remove it right away — it's flagged `deleted`
+// and kept faded-but-visible with a restore option for a grace period,
+// so an accidental tap doesn't mean losing data for good. dayTotal() and
+// every other aggregate above already skip flagged entries, so a phantom
+// entry stops "counting" the instant it's marked, well before it's
+// actually purged from storage.
+const PURGE_DELAY_MS = 10000; // how long an entry stays recoverable
+
+function scheduleEntryPurge(key, entry, delay) {
+  setTimeout(() => {
+    if (!entry.deleted) return; // restored in the meantime — nothing to do
+    const arr = earningsData[key];
+    if (!arr) return;
+    const i = arr.indexOf(entry);
+    if (i !== -1) arr.splice(i, 1);
+    if (arr.length === 0) delete earningsData[key];
+    saveEarnings();
+    if (activeDateKey === key) renderEntryList();
+    renderCalendar();
+    renderToday();
+    renderStats();
+    renderGoal();
+    renderTodayEntries();
+  }, delay != null ? delay : PURGE_DELAY_MS);
+}
+
+// Called once at startup: entries that were mid-countdown when the app
+// was last closed either get their timer resumed (grace period still
+// has time left) or get cleaned up immediately (it fully elapsed while
+// the app was closed).
+function resumePendingPurges() {
+  const nowMs = Date.now();
+  Object.keys(earningsData).forEach(key => {
+    earningsData[key] = (earningsData[key] || []).filter(entry => {
+      if (!entry.deleted) return true;
+      const elapsed = nowMs - (entry.deletedAt || 0);
+      if (elapsed >= PURGE_DELAY_MS) return false; // grace period already over
+      scheduleEntryPurge(key, entry, PURGE_DELAY_MS - elapsed);
+      return true;
+    });
+    if (earningsData[key].length === 0) delete earningsData[key];
+  });
 }
 
 function exportData() {
@@ -272,27 +318,56 @@ function renderToday() {
 // plain, ungated log of today's records, newest first, so the newest
 // entry always lands right at the top the moment it's saved.
 function renderTodayEntries() {
+  const section = document.getElementById('todayEntriesSection');
   const wrap = document.getElementById('todayEntriesList');
   const todayKey = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
-  const entries = (earningsData[todayKey] || []).slice().reverse();
+  const entries = earningsData[todayKey] || [];
 
   if (entries.length === 0) {
-    wrap.innerHTML = '<p class="empty-note">Ще немає записів за сьогодні</p>';
+    section.style.display = 'none';
+    wrap.innerHTML = '';
     return;
   }
+  section.style.display = '';
 
-  wrap.innerHTML = entries.map(e =>
-    '<div class="today-entry-row">' +
+  // Newest first, and carry the original index so a restore click can
+  // find its way back to the exact entry object.
+  const withIdx = entries.map((e, idx) => ({ e, idx })).reverse();
+
+  wrap.innerHTML = withIdx.map(({ e, idx }) =>
+    '<div class="today-entry-row' + (e.deleted ? ' phantom' : '') + '" data-idx="' + idx + '">' +
       '<span class="today-entry-code">' + e.code + '</span>' +
       '<span>' + e.qty + ' шт</span>' +
       (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
       (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
       '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
+      (e.deleted ? '<button class="today-entry-restore" data-idx="' + idx + '" title="Відновити">↺</button>' : '') +
     '</div>'
   ).join('');
 
   wrap.querySelectorAll('.today-entry-row').forEach(row => {
-    row.addEventListener('click', () => openModal(now.getFullYear(), now.getMonth(), now.getDate()));
+    row.addEventListener('click', (ev) => {
+      if (ev.target.closest('.today-entry-restore')) return; // handled separately below
+      openModal(now.getFullYear(), now.getMonth(), now.getDate());
+    });
+  });
+
+  wrap.querySelectorAll('.today-entry-restore').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
+      const entry = entries[idx];
+      if (!entry) return;
+      delete entry.deleted;
+      delete entry.deletedAt;
+      saveEarnings();
+      if (activeDateKey === todayKey) renderEntryList();
+      renderCalendar();
+      renderToday();
+      renderStats();
+      renderGoal();
+      renderTodayEntries();
+    });
   });
 }
 
@@ -328,7 +403,9 @@ function renderCalendar() {
 
     let inner = day;
     if (leave) {
-      inner += '<span class="leave-mark">🏖</span>';
+      // Заглушка під іконку дня "за свій рахунок": постав leaveDay.png у
+      // корінь репозиторію поруч з workDay.png/offDay.png/calendar.png.
+      inner += '<img class="leave-mark" src="leaveDay.png" alt="">';
     } else if (total > 0) {
       inner += '<span class="earn-tag">' + fmtMoneyShort(total) + '₴</span>';
     } else {
@@ -366,6 +443,7 @@ function computeProductTotals() {
   const totals = {};
   for (const key of Object.keys(earningsData)) {
     (earningsData[key] || []).forEach(e => {
+      if (e.deleted) return;
       if (!totals[e.code]) totals[e.code] = { qty: 0, amount: 0 };
       totals[e.code].qty += e.qty;
       totals[e.code].amount += e.amount;
@@ -948,7 +1026,7 @@ function updatePreview() {
 // there's no need to manually add up 5+ entries at the end of a shift.
 function renderDayProductSummary() {
   const wrap = document.getElementById('dayProductSummary');
-  const entries = earningsData[activeDateKey] || [];
+  const entries = (earningsData[activeDateKey] || []).filter(e => !e.deleted);
 
   if (entries.length === 0) {
     wrap.innerHTML = '';
@@ -1009,23 +1087,32 @@ function renderEntryList() {
   } else {
     entries.forEach((e, idx) => {
       const row = document.createElement('div');
-      row.className = 'entry-row';
+      row.className = 'entry-row' + (e.deleted ? ' phantom' : '');
+      const remainingMs = e.deleted ? Math.max(0, PURGE_DELAY_MS - (Date.now() - (e.deletedAt || 0))) : 0;
       row.innerHTML =
         '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
         '<div class="entry-row-right">' +
           (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
           '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
-          '<button class="entry-del" data-idx="' + idx + '">✕</button></div>' +
-        '</div>';
+          (e.deleted
+            ? '<button class="entry-restore" data-idx="' + idx + '" title="Відновити">↺</button>'
+            : '<button class="entry-del" data-idx="' + idx + '">✕</button>') +
+          '</div>' +
+        '</div>' +
+        (e.deleted ? '<div class="phantom-timer-track"><div class="phantom-timer-bar" data-remaining="' + remainingMs + '"></div></div>' : '');
       list.appendChild(row);
     });
+
     list.querySelectorAll('.entry-del').forEach(btn => {
       btn.addEventListener('click', (ev) => {
         const idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
-        entries.splice(idx, 1);
-        if (entries.length === 0) delete earningsData[activeDateKey];
+        const entry = entries[idx];
+        if (!entry) return;
+        entry.deleted = true;
+        entry.deletedAt = Date.now();
         const ok = saveEarnings();
         document.getElementById('saveNote').textContent = ok ? '' : 'Не вдалося зберегти, спробуйте ще раз';
+        scheduleEntryPurge(activeDateKey, entry);
         renderEntryList();
         document.getElementById('dayTotal').textContent = fmtMoney(dayTotal(activeDateKey));
         renderCalendar();
@@ -1033,6 +1120,35 @@ function renderEntryList() {
         renderStats();
         renderGoal();
         renderTodayEntries();
+      });
+    });
+
+    list.querySelectorAll('.entry-restore').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        const idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
+        const entry = entries[idx];
+        if (!entry) return;
+        delete entry.deleted;
+        delete entry.deletedAt;
+        saveEarnings();
+        renderEntryList();
+        document.getElementById('dayTotal').textContent = fmtMoney(dayTotal(activeDateKey));
+        renderCalendar();
+        renderToday();
+        renderStats();
+        renderGoal();
+        renderTodayEntries();
+      });
+    });
+
+    // Animate each phantom row's countdown bar from full to empty over
+    // its own remaining time — a quiet visual cue that it's about to be
+    // purged for good, without needing a numeric countdown.
+    list.querySelectorAll('.phantom-timer-bar').forEach(bar => {
+      const remaining = parseInt(bar.getAttribute('data-remaining'), 10) || 0;
+      bar.style.transitionDuration = remaining + 'ms';
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => { bar.style.width = '0%'; });
       });
     });
   }
@@ -1070,7 +1186,10 @@ function updateLeaveToggleButton(status) {
   }
   btn.style.display = '';
   const leave = isLeaveDay(activeDateKey);
-  btn.textContent = leave ? '✕ Скасувати «вихідний за свій рахунок»' : '🏖 Позначити вихідним за свій рахунок';
+  // Заглушка під іконку: <img class="leave-btn-icon" src="leaveDay.png" alt="">
+  btn.innerHTML = leave
+    ? '✕ Скасувати «вихідний за свій рахунок»'
+    : '<img class="leave-btn-icon" src="leaveDay.png" alt=""> Позначити вихідним за свій рахунок';
   btn.classList.toggle('active', leave);
 }
 
