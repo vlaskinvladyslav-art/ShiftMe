@@ -15,7 +15,7 @@ function getStatus(y, m, d) {
 
 const monthNames = ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
 const monthNamesNom = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
-const weekdayNames = ['неділю','понеділок','вівторок','середу','четвер','пʼятницю','суботу'];
+const weekdayNames = ['неділя','понеділок','вівторок','середа','четвер','пʼятниця','субота'];
 
 const now = new Date();
 let viewYear = now.getFullYear();
@@ -53,6 +53,7 @@ function loadCustomProducts() {
 function saveCustomProducts() {
   try {
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(customProducts));
+    syncToCloudIfPossible();
     return true;
   } catch (e) {
     return false;
@@ -86,6 +87,7 @@ function loadLeaveDays() {
 function saveLeaveDays() {
   try {
     localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveDays));
+    syncToCloudIfPossible();
     return true;
   } catch (e) {
     return false;
@@ -161,9 +163,24 @@ function loadEarnings() {
   resumePendingPurges();
 }
 
+// Every local write funnels through one of the four save*() functions
+// below, so hooking the cloud push in here (rather than at every call
+// site that triggers a save) guarantees nothing slips through — add a
+// product, log an entry, set a goal, mark a leave day, it all reaches
+// the cloud the same way, automatically, whenever CloudSync is signed
+// in and approved. If it isn't (not logged in, offline, still pending
+// admin approval), this is a harmless no-op — the app works exactly as
+// it did before cloud sync existed.
+function syncToCloudIfPossible() {
+  if (window.CloudSync && window.CloudSync.isReady()) {
+    window.CloudSync.pushLocalData();
+  }
+}
+
 function saveEarnings() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(earningsData));
+    syncToCloudIfPossible();
     return true;
   } catch (e) {
     return false;
@@ -676,6 +693,7 @@ function loadGoals() {
 function saveGoals() {
   try {
     localStorage.setItem(GOALS_KEY, JSON.stringify(goalsData));
+    syncToCloudIfPossible();
     return true;
   } catch (e) {
     return false;
@@ -769,7 +787,7 @@ function renderGoal() {
     return;
   }
 
-  document.getElementById('goalMonthName').textContent = monthNames[now.getMonth()];
+  document.getElementById('goalMonthName').textContent = monthNamesNom[now.getMonth()];
   document.getElementById('goalFill').classList.toggle('reached', plan.reached);
   requestAnimationFrame(() => {
     document.getElementById('goalFill').style.width = plan.progressPct + '%';
@@ -1289,6 +1307,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
 
   initGoalCardListeners();
   initCoreProductTiles();
+  initCloudSyncUI();
 
   renderToday();
   renderGoal();
@@ -1302,6 +1321,103 @@ document.getElementById('importFile').addEventListener('change', (e) => {
     });
   });
 })();
+
+// ---------- Bridge for firebase-sync.js ----------
+// A module script can't see this file's top-level let/const bindings by
+// name, so this is the one deliberate, explicit door between the two:
+// firebase-sync.js only ever touches local data through these two
+// functions, never by reaching into script.js's internals directly.
+window.AppBridge = {
+  getLocalBundle() {
+    return { earnings: earningsData, goals: goalsData, customProducts, leaveDays };
+  },
+  applyCloudBundle(bundle) {
+    earningsData = (bundle && bundle.earnings) || {};
+    goalsData = (bundle && bundle.goals) || {};
+    customProducts = (bundle && bundle.customProducts) || [];
+    leaveDays = (bundle && bundle.leaveDays) || {};
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(earningsData)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(GOALS_KEY, JSON.stringify(goalsData)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(customProducts)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveDays)); } catch (e) { /* ignore */ }
+    resumePendingPurges();
+    renderToday();
+    renderGoal();
+    renderTodayEntries();
+    renderCalendar();
+    renderStats();
+  },
+};
+
+// ---------- Cloud sync status UI ----------
+// firebase-sync.js dispatches a 'cloudsync:status' window event whenever
+// sign-in state, admin approval, or the live connection to the database
+// changes. This just reflects that into the small status card — it
+// never talks to Firebase directly.
+function initCloudSyncUI() {
+  const card = document.getElementById('cloudSyncCard');
+  if (!card) return;
+
+  const dot = document.getElementById('cloudSyncDot');
+  const label = document.getElementById('cloudSyncLabel');
+  const signInBtn = document.getElementById('cloudSignInBtn');
+  const signOutBtn = document.getElementById('cloudSignOutBtn');
+  const forceSyncBtn = document.getElementById('cloudForceSyncBtn');
+
+  function render(status) {
+    dot.className = 'cloud-sync-dot';
+    signInBtn.style.display = 'none';
+    signOutBtn.style.display = 'none';
+    forceSyncBtn.style.display = 'none';
+
+    if (status.state === 'signed-out') {
+      dot.classList.add('is-off');
+      label.textContent = 'Увійдіть до акаунту, щоб синхронізувати зписи із хмарою';
+      signInBtn.style.display = '';
+    } else if (status.state === 'pending') {
+      dot.classList.add('is-pending');
+      label.textContent = 'Очікує підтвердження адміністратора (' + (status.email || '') + ')';
+      signOutBtn.style.display = '';
+    } else if (status.state === 'connected') {
+      dot.classList.add('is-on');
+      label.textContent = 'Синхронізовано · ' + (status.name || status.email || '');
+      signOutBtn.style.display = '';
+      forceSyncBtn.style.display = '';
+    } else {
+      dot.classList.add('is-off');
+      label.textContent = 'Немає з’єднання з базою — записи чекають локально';
+      signOutBtn.style.display = '';
+      forceSyncBtn.style.display = '';
+    }
+  }
+
+  window.addEventListener('cloudsync:status', (e) => render(e.detail));
+  
+  if (window.CloudSync) render(window.CloudSync.getStatus());
+  else render({ state: 'signed-out' });
+
+  // Оновлені безпечні обробники кліків:
+  signInBtn.addEventListener('click', () => {
+    if (window.CloudSync && typeof window.CloudSync.signIn === 'function') {
+      window.CloudSync.signIn();
+    } else {
+      console.warn('CloudSync ще не завантажився');
+    }
+  });
+
+  signOutBtn.addEventListener('click', () => {
+    if (window.CloudSync && typeof window.CloudSync.signOut === 'function') {
+      window.CloudSync.signOut();
+    }
+  });
+
+  forceSyncBtn.addEventListener('click', () => {
+    if (window.CloudSync && typeof window.CloudSync.forceSync === 'function') {
+      window.CloudSync.forceSync();
+    }
+  });
+}
+
 
 // ---------- Splash screen ----------
 // Shown instantly on load; hidden once init() above has run, with a small

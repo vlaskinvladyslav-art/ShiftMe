@@ -1,11 +1,12 @@
 // Bump this when index.html / style.css / script.js change, so the
 // updated files get re-cached instead of serving stale ones forever.
-const CACHE_NAME = 'shiftme-v0-6-1-alpha';
+const CACHE_NAME = 'shiftme-v0-7-0-alpha';
 const CORE_ASSETS = [
   './',
   './index.html',
   './style.css',
   './script.js',
+  './firebase-sync.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

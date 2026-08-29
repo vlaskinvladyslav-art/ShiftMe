@@ -197,7 +197,7 @@ h1 span { color: var(--work); }
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 22px 20px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
   position: relative;
   overflow: hidden;
   transition: background 0.4s ease;
@@ -1140,6 +1140,95 @@ h1 span { color: var(--work); }
   text-underline-offset: 2px;
   width: 100%;
 }
+
+/* ---------- Cloud sync status ---------- */
+.cloud-sync-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.cloud-sync-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.cloud-sync-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--muted);
+  box-shadow: 0 0 0 rgba(0,0,0,0);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.cloud-sync-dot.is-on {
+  background: var(--off);
+  box-shadow: 0 0 8px rgba(67, 198, 172, 0.6);
+  animation: cloudDotPulse 2.4s ease-in-out infinite;
+}
+.cloud-sync-dot.is-off { background: var(--work); }
+.cloud-sync-dot.is-pending {
+  background: var(--money);
+  animation: cloudDotPulse 1.2s ease-in-out infinite;
+}
+@keyframes cloudDotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.cloud-sync-label {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.cloud-sync-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.warning-banner {
+  padding: 12px 16px;
+  margin: 14px 0 6px 0;
+  background: var(--surface-2, #1e1e24);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 183, 3, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  text-align: center;
+
+  /* Апаратна підготовка GPU */
+  will-change: transform, border-color, box-shadow;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+
+  /* Оптимальна тривалість для мобілок */
+  animation: floatAndBreathe 6s ease-in-out infinite;
+}
+
+.coming-soon-sub {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes floatAndBreathe {
+  0%, 100% {
+    /* Використовуємо translate3d замість translateY для 100% активації GPU на iOS */
+    transform: translate3d(0, 0, 0);
+    border-color: rgba(255, 183, 3, 0.2);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1),
+                0 0 0 0 rgba(255, 183, 3, 0);
+  }
+  50% {
+    transform: translate3d(0, -4px, 0);
+    border-color: rgba(255, 183, 3, 0.5);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12),
+                0 0 12px 2px rgba(255, 183, 3, 0.15);
+  }
+}
+
+.cloud-sync-actions .data-btn { flex: 1; }
 
 /* Data backup (export / import JSON) */
 .data-actions {

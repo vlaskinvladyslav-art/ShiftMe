@@ -64,6 +64,22 @@
     </div>
   </div>
 
+  <div class="cloud-sync-card" id="cloudSyncCard">
+    <div class="cloud-sync-row">
+      <p class="cloud-sync-label" id="cloudSyncLabel">—</p>
+      <span class="cloud-sync-dot" id="cloudSyncDot"></span>
+    </div>
+    <div class="cloud-sync-actions">
+      <button class="data-btn" id="cloudSignInBtn" type="button">Увійти через Google</button>
+      <button class="data-btn" id="cloudSignOutBtn" type="button">Вийти</button>
+      <button class="data-btn" id="cloudForceSyncBtn" type="button">🔄 Синхронізувати зараз</button>
+    </div>
+    <div class="warning-banner">
+      <p class="coming-soon-sub"> Наразі ця функція перебуває в розробці </p>
+    </div>
+  </div>
+
+
   <div class="goal-card" id="goalCard">
     <div class="goal-setup goal-empty" id="goalSetup">
       <div class="goal-ripple" id="goalSetupIcon">
@@ -167,13 +183,15 @@
     <div id="productStats"></div>
   </div>
 
+
+
   <div class="data-actions">
     <button class="data-btn" id="exportBtn" type="button">⭳ Експорт JSON</button>
     <label class="data-btn" for="importFile">⭱ Імпорт JSON</label>
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.6.1 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.7.0 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -245,5 +263,7 @@
 </div>
 
 <script src="script.js"></script>
+<script type="module" src="firebase-sync.js"></script>
+
 </body>
 </html>
