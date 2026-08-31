@@ -64,22 +64,6 @@
     </div>
   </div>
 
-  <div class="cloud-sync-card" id="cloudSyncCard">
-    <div class="cloud-sync-row">
-      <p class="cloud-sync-label" id="cloudSyncLabel">—</p>
-      <span class="cloud-sync-dot" id="cloudSyncDot"></span>
-    </div>
-    <div class="cloud-sync-actions">
-      <button class="data-btn" id="cloudSignInBtn" type="button">Увійти через Google</button>
-      <button class="data-btn" id="cloudSignOutBtn" type="button">Вийти</button>
-      <button class="data-btn" id="cloudForceSyncBtn" type="button">🔄 Синхронізувати зараз</button>
-    </div>
-    <div class="warning-banner">
-      <p class="coming-soon-sub"> Наразі ця функція перебуває в розробці </p>
-    </div>
-  </div>
-
-
   <div class="goal-card" id="goalCard">
     <div class="goal-setup goal-empty" id="goalSetup">
       <div class="goal-ripple" id="goalSetupIcon">
@@ -261,6 +245,142 @@
     <p class="save-note" id="saveNote"></p>
   </div>
 </div>
+
+<!-- ---------- Full-screen windows ----------
+     Кожне вікно — окремий повноекранний шар, який ховається/показується
+     класом .open (opacity/transform), а не display:none — так само, як
+     .overlay вище — щоб анімація появи справді програвалась, а не
+     вікно просто "стрибало" на екран. -->
+<div class="app-window" id="windowAuth" data-window="auth">
+  <div class="app-window-inner">
+    <div class="app-window-head">
+      <p class="app-window-title">Профіль</p>
+      <button class="app-window-close" type="button" data-close-window>✕</button>
+    </div>
+
+    <!-- Стан 1: не авторизований — тільки вхід + напівпрозорий фон -->
+    <div class="profile-login" id="profileLogin">
+      <div class="profile-login-bg" aria-hidden="true"></div>
+      <div class="profile-login-content">
+        <div class="profile-login-icon" aria-hidden="true">☁</div>
+        <p class="profile-login-title">Синхронізація між пристроями</p>
+        <p class="profile-login-sub">Авторизуйтесь, щоб синхронізувати записи з хмарою та бачити їх на будь-якому пристрої.</p>
+        <button class="google-signin-btn" id="cloudSignInBtn" type="button">
+          <!-- Заглушка під іконку Google: заміни .google-signin-icon на <img> пізніше -->
+          <span class="google-signin-icon" aria-hidden="true"></span>
+          Увійти через Google
+        </button>
+      </div>
+    </div>
+
+    <!-- Стан 2: авторизований, але очікує підтвердження адміністратора -->
+    <div class="profile-pending" id="profilePending" style="display:none;">
+      <div class="profile-status-row">
+        <span class="status-dot-wrap" id="pendingDotWrap">
+          <span class="status-dot"></span>
+          <span class="status-ring"></span>
+          <span class="status-ring"></span>
+          <span class="status-ring"></span>
+        </span>
+        <div class="profile-status-text">
+          <p class="profile-status-label">Очікує підтвердження</p>
+          <p class="profile-status-sub" id="pendingEmail">—</p>
+        </div>
+      </div>
+      <p class="profile-pending-note">Адміністратор має підтвердити акаунт — після цього записи почнуть синхронізуватись автоматично. Це одноразово.</p>
+      <button class="data-btn" id="cloudSignOutBtnPending" type="button">Вийти</button>
+    </div>
+
+    <!-- Стан 3: авторизований і підтверджений — повні налаштування -->
+    <div class="profile-full" id="profileFull" style="display:none;">
+      <div class="profile-status-row">
+        <span class="status-dot-wrap" id="fullDotWrap">
+          <span class="status-dot"></span>
+          <span class="status-ring"></span>
+          <span class="status-ring"></span>
+          <span class="status-ring"></span>
+        </span>
+        <div class="profile-status-text">
+          <p class="profile-status-label" id="cloudSyncLabel">—</p>
+          <p class="profile-status-sub" id="cloudSyncTime">—</p>
+        </div>
+      </div>
+
+      <div class="profile-user-card">
+        <div class="profile-avatar" aria-hidden="true"></div>
+        <div class="profile-user-text">
+          <p class="profile-user-name" id="profileUserName">—</p>
+          <p class="profile-user-email" id="profileUserEmail">—</p>
+        </div>
+        <span class="profile-approved-badge">Доступ підтверджено</span>
+      </div>
+
+      <div class="profile-field-group">
+        <label class="profile-field">
+          <span>Лінія роботи</span>
+          <input type="text" id="profileLineInput" placeholder="напр. Лінія 3" maxlength="40">
+        </label>
+        <label class="profile-field">
+          <span>Процес</span>
+          <input type="text" id="profileProcessInput" placeholder="напр. Складання" maxlength="40">
+        </label>
+        <p class="profile-field-note">Поки що зберігається лише на цьому пристрої. Синхронізація цих полів (і публічні профілі для перегляду) — у планах.</p>
+      </div>
+
+      <div class="profile-actions">
+        <button class="data-btn" id="cloudForceSyncBtn" type="button">🔄 Синхронізувати зараз</button>
+        <button class="data-btn" id="cloudSignOutBtn" type="button">Вийти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app-window" id="windowSettings" data-window="settings">
+  <div class="app-window-inner">
+    <div class="app-window-head">
+      <p class="app-window-title">Налаштування</p>
+      <button class="app-window-close" type="button" data-close-window>✕</button>
+    </div>
+    <div class="coming-soon-banner">
+      <p class="coming-soon-title">Розділ у розробці</p>
+      <p class="coming-soon-sub">Налаштування застосунку з’являться тут згодом</p>
+    </div>
+  </div>
+</div>
+
+<div class="app-window" id="windowTop" data-window="top">
+  <div class="app-window-inner">
+    <div class="app-window-head">
+      <p class="app-window-title">Топ працівників</p>
+      <button class="app-window-close" type="button" data-close-window>✕</button>
+    </div>
+    <div class="coming-soon-banner">
+      <p class="coming-soon-title">Розділ у розробці</p>
+      <p class="coming-soon-sub">Рейтинг з’явиться тут згодом</p>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Bottom navigation ----------
+     Закріплена position:fixed знизу, завжди видима, незалежно від того,
+     яке вікно (або жодне) зараз відкрите. Іконки поки що порожні
+     заглушки (.nav-icon) — постав власні зображення/SVG замість них
+     пізніше, наприклад через background-image в CSS-класі виду
+     .nav-icon-auth { background-image: url('iconAuth.png'); } -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="nav-btn" type="button" data-window="auth">
+    <img class="nav-icon" src="user.png">
+    <span class="nav-label">Профіль</span>
+  </button>
+  <button class="nav-btn" type="button" data-window="settings">
+    <img class="nav-icon" src="system.png">
+    <span class="nav-label">Налаштування</span>
+  </button>
+  <button class="nav-btn" type="button" data-window="top">
+    <img class="nav-icon" src="bar-graph.png">
+    <span class="nav-label">Топ</span>
+  </button>
+</nav>
 
 <script src="script.js"></script>
 <script type="module" src="firebase-sync.js"></script>

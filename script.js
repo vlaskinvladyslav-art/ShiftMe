@@ -1308,6 +1308,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   initGoalCardListeners();
   initCoreProductTiles();
   initCloudSyncUI();
+  initAppNav();
 
   renderToday();
   renderGoal();
@@ -1349,54 +1350,73 @@ window.AppBridge = {
   },
 };
 
-// ---------- Cloud sync status UI ----------
+// ---------- Cloud sync / profile UI ----------
 // firebase-sync.js dispatches a 'cloudsync:status' window event whenever
-// sign-in state, admin approval, or the live connection to the database
-// changes. This just reflects that into the small status card — it
+// sign-in state, admin approval, live DB connection, or the last sync
+// time changes. This just reflects that into the profile window — it
 // never talks to Firebase directly.
 function initCloudSyncUI() {
-  const card = document.getElementById('cloudSyncCard');
-  if (!card) return;
+  const loginBox = document.getElementById('profileLogin');
+  const pendingBox = document.getElementById('profilePending');
+  const fullBox = document.getElementById('profileFull');
+  if (!loginBox || !pendingBox || !fullBox) return;
 
-  const dot = document.getElementById('cloudSyncDot');
-  const label = document.getElementById('cloudSyncLabel');
+  const pendingDotWrap = document.getElementById('pendingDotWrap');
+  const fullDotWrap = document.getElementById('fullDotWrap');
+  const pendingEmail = document.getElementById('pendingEmail');
+  const cloudSyncLabel = document.getElementById('cloudSyncLabel');
+  const cloudSyncTime = document.getElementById('cloudSyncTime');
+  const userName = document.getElementById('profileUserName');
+  const userEmail = document.getElementById('profileUserEmail');
+
   const signInBtn = document.getElementById('cloudSignInBtn');
+  const signOutBtnPending = document.getElementById('cloudSignOutBtnPending');
   const signOutBtn = document.getElementById('cloudSignOutBtn');
   const forceSyncBtn = document.getElementById('cloudForceSyncBtn');
 
+  function setDotState(wrapEl, state) {
+    wrapEl.className = 'status-dot-wrap';
+    if (state === 'connected') wrapEl.classList.add('is-green');
+    else if (state === 'offline') wrapEl.classList.add('is-red');
+    else wrapEl.classList.add('is-orange'); // connecting / pending
+  }
+
+  function formatSyncTime(ts) {
+    if (!ts) return 'Ще не синхронізовано';
+    const d = new Date(ts);
+    const sameDay = d.toDateString() === new Date().toDateString();
+    const time = d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+    return 'Синхронізовано: ' + (sameDay ? ('сьогодні о ' + time) : (d.toLocaleDateString('uk-UA') + ' о ' + time));
+  }
+
   function render(status) {
-    dot.className = 'cloud-sync-dot';
-    signInBtn.style.display = 'none';
-    signOutBtn.style.display = 'none';
-    forceSyncBtn.style.display = 'none';
+    loginBox.style.display = 'none';
+    pendingBox.style.display = 'none';
+    fullBox.style.display = 'none';
 
     if (status.state === 'signed-out') {
-      dot.classList.add('is-off');
-      label.textContent = 'Увійдіть до акаунту, щоб синхронізувати зписи із хмарою';
-      signInBtn.style.display = '';
+      loginBox.style.display = '';
     } else if (status.state === 'pending') {
-      dot.classList.add('is-pending');
-      label.textContent = 'Очікує підтвердження адміністратора (' + (status.email || '') + ')';
-      signOutBtn.style.display = '';
-    } else if (status.state === 'connected') {
-      dot.classList.add('is-on');
-      label.textContent = 'Синхронізовано · ' + (status.name || status.email || '');
-      signOutBtn.style.display = '';
-      forceSyncBtn.style.display = '';
+      pendingBox.style.display = '';
+      setDotState(pendingDotWrap, 'pending');
+      pendingEmail.textContent = status.email || '';
     } else {
-      dot.classList.add('is-off');
-      label.textContent = 'Немає з’єднання з базою — записи чекають локально';
-      signOutBtn.style.display = '';
-      forceSyncBtn.style.display = '';
+      fullBox.style.display = '';
+      setDotState(fullDotWrap, status.state); // connecting / connected / offline
+      if (status.state === 'connected') cloudSyncLabel.textContent = 'З’єднано з базою';
+      else if (status.state === 'offline') cloudSyncLabel.textContent = 'Немає з’єднання — записи чекають локально';
+      else cloudSyncLabel.textContent = 'З’єднання…';
+      cloudSyncTime.textContent = formatSyncTime(status.lastSyncedAt);
+      userName.textContent = status.name || '—';
+      userEmail.textContent = status.email || '—';
     }
   }
 
   window.addEventListener('cloudsync:status', (e) => render(e.detail));
-  
+
   if (window.CloudSync) render(window.CloudSync.getStatus());
   else render({ state: 'signed-out' });
 
-  // Оновлені безпечні обробники кліків:
   signInBtn.addEventListener('click', () => {
     if (window.CloudSync && typeof window.CloudSync.signIn === 'function') {
       window.CloudSync.signIn();
@@ -1405,10 +1425,12 @@ function initCloudSyncUI() {
     }
   });
 
-  signOutBtn.addEventListener('click', () => {
-    if (window.CloudSync && typeof window.CloudSync.signOut === 'function') {
-      window.CloudSync.signOut();
-    }
+  [signOutBtnPending, signOutBtn].forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (window.CloudSync && typeof window.CloudSync.signOut === 'function') {
+        window.CloudSync.signOut();
+      }
+    });
   });
 
   forceSyncBtn.addEventListener('click', () => {
@@ -1416,8 +1438,88 @@ function initCloudSyncUI() {
       window.CloudSync.forceSync();
     }
   });
+
+  // "Лінія роботи" / "Процес" — поки що суто локальні поля (окрема
+  // заготовка під майбутні публічні профілі), не йдуть у Firebase.
+  const lineInput = document.getElementById('profileLineInput');
+  const processInput = document.getElementById('profileProcessInput');
+  const META_KEY = 'shiftTrackerProfileMeta';
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(META_KEY) || '{}');
+    if (lineInput) lineInput.value = saved.line || '';
+    if (processInput) processInput.value = saved.process || '';
+  } catch (e) { /* ігноруємо биту локальну сесію */ }
+
+  function saveProfileMeta() {
+    try {
+      localStorage.setItem(META_KEY, JSON.stringify({
+        line: lineInput.value.trim(),
+        process: processInput.value.trim(),
+      }));
+    } catch (e) { /* локальне сховище недоступне — просто нічого не зберігаємо */ }
+  }
+  if (lineInput) lineInput.addEventListener('change', saveProfileMeta);
+  if (processInput) processInput.addEventListener('change', saveProfileMeta);
 }
 
+
+// ---------- Bottom nav + full-screen windows ----------
+// Три вікна ("Профіль" / "Налаштування" / "Топ") — постійні DOM-вузли,
+// які лише перемикають клас .open (див. CSS: opacity/transform, той
+// самий підхід, що й у .overlay для модалки дня). Повторний тап по вже
+// активній кнопці нав-бару закриває вікно назад на головний екран.
+function initAppNav() {
+  const buttons = document.querySelectorAll('.nav-btn[data-window]');
+  const windows = document.querySelectorAll('.app-window[data-window]');
+  if (!buttons.length || !windows.length) return;
+
+  let activeWindow = null;
+
+  function closeAllWindows() {
+    windows.forEach(w => w.classList.remove('open'));
+    buttons.forEach(b => b.classList.remove('active'));
+    document.body.classList.remove('nav-window-open');
+    activeWindow = null;
+  }
+
+  function openWindow(name) {
+    windows.forEach(w => w.classList.toggle('open', w.dataset.window === name));
+    buttons.forEach(b => b.classList.toggle('active', b.dataset.window === name));
+    document.body.classList.add('nav-window-open');
+    activeWindow = name;
+  }
+
+  buttons.forEach(btn => {
+    // touchend спрацьовує навіть тоді, коли цей самий дотик щойно
+    // зупинив інерційний скрол сторінки — на відміну від click, який
+    // браузер у такому разі просто не генерує (спрацював би лише на
+    // наступному тапі). preventDefault тут же гасить "справжній" click,
+    // що прийшов би слідом за touchend, щоб дія не викликалась двічі.
+    let handledByTouch = false;
+    function activate() {
+      const name = btn.dataset.window;
+      if (activeWindow === name) {
+        closeAllWindows();
+      } else {
+        openWindow(name);
+      }
+    }
+    btn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handledByTouch = true;
+      activate();
+    }, { passive: false });
+    btn.addEventListener('click', () => {
+      if (handledByTouch) { handledByTouch = false; return; } // вже спрацювало по touchend
+      activate(); // мишка/десктоп без touch-подій
+    });
+  });
+
+  document.querySelectorAll('.app-window [data-close-window]').forEach(btn => {
+    btn.addEventListener('click', closeAllWindows);
+  });
+}
 
 // ---------- Splash screen ----------
 // Shown instantly on load; hidden once init() above has run, with a small

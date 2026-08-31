@@ -45,6 +45,7 @@ let currentUser = null;
 let approved = false;
 let bootstrapped = false;
 let pushTimer = null;
+let lastSyncedAt = null;
 
 // ---------- Event Bus ----------
 function emit(status) {
@@ -54,7 +55,7 @@ function emit(status) {
 function currentStatus() {
   if (!currentUser) return { state: 'signed-out' };
   if (!approved) return { state: 'pending', name: currentUser.displayName, email: currentUser.email };
-  return { state: connectionState, name: currentUser.displayName, email: currentUser.email };
+  return { state: connectionState, name: currentUser.displayName, email: currentUser.email, lastSyncedAt };
 }
 let connectionState = 'connecting';
 
@@ -82,6 +83,7 @@ onAuthStateChanged(auth, async (user) => {
   
   if (!user) {
     approved = false;
+    lastSyncedAt = null;
     emit(currentStatus());
     return;
   }
@@ -139,6 +141,9 @@ async function bootstrapSync() {
   } else {
     await set(dataRef, local);
   }
+
+  lastSyncedAt = Date.now();
+  emit(currentStatus());
 }
 
 // ---------- Push Data ----------
@@ -146,7 +151,12 @@ function pushLocalData() {
   if (!currentUser || !approved || !window.AppBridge) return;
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
-    set(ref(db, 'users/' + currentUser.uid + '/data'), window.AppBridge.getLocalBundle()).catch(() => {});
+    set(ref(db, 'users/' + currentUser.uid + '/data'), window.AppBridge.getLocalBundle())
+      .then(() => {
+        lastSyncedAt = Date.now();
+        emit(currentStatus());
+      })
+      .catch(() => {});
   }, 400);
 }
 
