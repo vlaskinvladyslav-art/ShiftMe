@@ -1444,7 +1444,7 @@ h1 span { color: var(--work); }
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 50;
+  z-index: 70;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.25s ease, visibility 0.25s ease;
@@ -1900,10 +1900,20 @@ body.nav-window-open { overflow: hidden; }
   gap: 4px;
   background: var(--surface);
   border-top: 1px solid var(--line);
-  padding: 5px 10px calc(5px + env(safe-area-inset-bottom));
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
   /* Без цього свайп по нав-бару прокручує сторінку під ним замість
      того, щоб просто натиснути кнопку. */
   touch-action: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+}
+/* Поки відкрита модалка запису дня — нав-бар ховається, щоб не
+   перекривати кнопку "Додати запис" і не ловити випадкові тапи під
+   модалкою, що зʼїжджає знизу. */
+body.day-modal-open .bottom-nav {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(100%);
 }
 
 .nav-btn {
@@ -1931,10 +1941,11 @@ body.nav-window-open { overflow: hidden; }
 }
 
 .nav-icon {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 4px;
-  opacity: 0.5;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: currentColor;
+  opacity: 0.35;
   transition: opacity 0.25s ease, transform 0.25s ease;
   /* Заглушка під іконку: заміни span на <img class="nav-icon" src="...">
      або постав background-image через власний клас — колір/розмір
@@ -1942,7 +1953,7 @@ body.nav-window-open { overflow: hidden; }
 }
 .nav-btn.active .nav-icon {
   opacity: 1;
-  transform: scale(1.2);
+  transform: scale(1.1);
 }
 
 .nav-label {

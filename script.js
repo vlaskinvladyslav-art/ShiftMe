@@ -1192,6 +1192,7 @@ function openModal(y, m, d) {
   updatePreview();
   renderEntryList();
   document.getElementById('overlay').classList.add('open');
+  document.body.classList.add('day-modal-open');
 }
 
 // Shows/labels the "вихідний за свій рахунок" toggle — only relevant on
@@ -1237,6 +1238,7 @@ document.getElementById('leaveToggleBtn').addEventListener('click', () => {
 
 function closeModal() {
   document.getElementById('overlay').classList.remove('open');
+  document.body.classList.remove('day-modal-open');
 }
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
