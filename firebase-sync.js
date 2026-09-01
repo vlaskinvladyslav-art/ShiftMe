@@ -43,6 +43,7 @@ setPersistence(auth, browserLocalPersistence).catch((error) => {
 
 let currentUser = null;
 let approved = false;
+let profileName = '';
 let bootstrapped = false;
 let pushTimer = null;
 let lastSyncedAt = null;
@@ -54,8 +55,8 @@ function emit(status) {
 
 function currentStatus() {
   if (!currentUser) return { state: 'signed-out' };
-  if (!approved) return { state: 'pending', name: currentUser.displayName, email: currentUser.email };
-  return { state: connectionState, name: currentUser.displayName, email: currentUser.email, lastSyncedAt };
+  if (!approved) return { state: 'blocked', name: profileName, email: currentUser.email };
+  return { state: connectionState, name: profileName, email: currentUser.email, lastSyncedAt };
 }
 let connectionState = 'connecting';
 
@@ -80,9 +81,10 @@ async function signOutUser() {
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   bootstrapped = false;
-  
+
   if (!user) {
     approved = false;
+    profileName = '';
     lastSyncedAt = null;
     emit(currentStatus());
     return;
@@ -95,22 +97,27 @@ onAuthStateChanged(auth, async (user) => {
     const existing = await get(profileRef);
     const prior = existing.exists() ? existing.val() : {};
 
-    approved = isAdmin ? true : (prior.approved === true);
+    // Доступ надається автоматично всім — адмін лише може заблокувати
+    // конкретного користувача (prior.blocked === true), а не навпаки
+    // підтверджувати кожного вручну.
+    approved = isAdmin ? true : (prior.blocked !== true);
+
+    // Ім'я з Google — лише разова початкова підказка. Якщо людина вже
+    // задала своє (через updateDisplayName), воно не перезаписується
+    // при кожному вході — бо в Google-акаунті часто нік, а не справжнє ім'я.
+    profileName = prior.name || user.displayName || '';
 
     const profilePayload = {
-      name: user.displayName || '',
+      name: profileName,
       email: user.email || '',
       firstSeen: prior.firstSeen || Date.now(),
       lastSeen: Date.now(),
     };
 
-    if (isAdmin) {
-      profilePayload.approved = true;
-    }
-
     await update(profileRef, profilePayload);
   } catch (e) {
     approved = isAdmin;
+    profileName = user.displayName || '';
   }
 
   emit(currentStatus());
@@ -169,12 +176,26 @@ function forceSync() {
   }, 300);
 }
 
+// ---------- Update Display Name ----------
+// "name" лишається полем, яке може писати сам користувач (правила це
+// дозволяють) — Google-нік лише початкове значення, не остаточне.
+function updateDisplayName(name) {
+  const trimmed = (name || '').trim();
+  if (!currentUser) return Promise.reject(new Error('not signed in'));
+  if (!trimmed) return Promise.reject(new Error('empty name'));
+  return update(ref(db, 'users/' + currentUser.uid + '/profile'), { name: trimmed }).then(() => {
+    profileName = trimmed;
+    emit(currentStatus());
+  });
+}
+
 // ---------- Export Bridge ----------
 window.CloudSync = {
   signIn,
   signOut: signOutUser,
   forceSync,
   pushLocalData,
+  updateDisplayName,
   getStatus: currentStatus,
   isReady: () => !!currentUser && approved,
 };

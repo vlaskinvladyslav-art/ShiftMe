@@ -36,6 +36,15 @@
     <p class="today-date" id="todayDate"></p>
   </header>
 
+  <!-- Ненав'язливе нагадування для тих, хто ще не авторизувався: помітне,
+       але не модальне — не заважає одразу почати записувати. Показується/
+       ховається через initAuthReminder() залежно від cloudsync:status. -->
+  <button class="auth-reminder" id="authReminder" type="button" style="display:none;">
+    <span class="auth-reminder-dot" aria-hidden="true"></span>
+    <span class="auth-reminder-text">Записи поки зберігаються лише на цьому пристрої — авторизуйтесь через Google, щоб не втратити їх</span>
+    <span class="auth-reminder-arrow" aria-hidden="true">→</span>
+  </button>
+
   <div class="cycle-strip" id="cycleStrip"></div>
 
   <div class="status-card" id="statusCard">
@@ -131,9 +140,25 @@
     <div class="legend-item"><span class="legend-swatch leave"></span><span>За свій рахунок</span></div>
   </div>
 
-  <div class="coming-soon-banner">
-    <p class="coming-soon-title">Процес розробки</p>
-    <p class="coming-soon-sub">Застосунок перебуває у активній розробці. Не забувайте створювати резервні копії для збереження записів</p>
+  <div class="dev-notice" id="devNotice">
+    <button class="dev-notice-head" id="devNoticeToggle" type="button" aria-expanded="false" aria-controls="devNoticeBody">
+      <span class="dev-notice-head-text">
+        <span class="dev-notice-title">Процес розробки</span>
+        <span class="dev-notice-teaser">Торкніться, щоб дізнатись більше</span>
+      </span>
+      <span class="dev-notice-chevron" aria-hidden="true">
+        <span class="chevron"></span>
+        <span class="chevron"></span>
+      </span>
+    </button>
+    <div class="dev-notice-body" id="devNoticeBody">
+      <div class="dev-notice-body-inner">
+        <p class="dev-notice-line">Застосунок перебуває в активній розробці і постійно додається новий функціонал.</p>
+        <p class="dev-notice-line">Через це окремі можливості можуть працювати нестабільно — дякуємо за розуміння!</p>
+        <p class="dev-notice-line dev-notice-cta">Хочете вплинути на розвиток проєкту? Переходьте в наш <a href="https://t.me/+osEJ4fUs8AZhMTUy" target="_blank" rel="noopener noreferrer">Telegram-чат</a>.</p>
+        <p class="dev-notice-line">Діліться відгуками, а також пропонуйте власні фічі.</p>
+      </div>
+    </div>
   </div>
 
   <p class="section-title">Статистика</p>
@@ -205,6 +230,9 @@
 
     <p class="form-label">Виріб</p>
     <div class="product-choice" id="productChoice">
+      <div class="product-btn rnd-tile" id="rndTile" title="Одноденне переміщення на інший процес">
+        <span class="code">R&amp;D</span><span class="rate" id="rndTileRate"></span>
+      </div>
       <div class="product-btn" id="coreTile0">
         <span class="code" id="coreTile0Code"></span><span class="rate" id="coreTile0Rate"></span>
       </div>
@@ -229,7 +257,7 @@
       </div>
     </div>
 
-    <p class="form-label">Кількість, шт</p>
+    <p class="form-label" id="qtyLabel">Кількість, шт</p>
     <div class="qty-row">
       <input type="number" inputmode="numeric" id="qtyInput" placeholder="напр. 173" min="0">
     </div>
@@ -262,7 +290,7 @@
     <div class="profile-login" id="profileLogin">
       <div class="profile-login-bg" aria-hidden="true"></div>
       <div class="profile-login-content">
-        <div class="profile-login-icon" aria-hidden="true">☁</div>
+        <div class="profile-login-icon" aria-hidden="true"><span>☁</span></div>
         <p class="profile-login-title">Синхронізація між пристроями</p>
         <p class="profile-login-sub">Авторизуйтесь, щоб синхронізувати записи з хмарою та бачити їх на будь-якому пристрої.</p>
         <button class="google-signin-btn" id="cloudSignInBtn" type="button">
@@ -273,7 +301,7 @@
       </div>
     </div>
 
-    <!-- Стан 2: авторизований, але очікує підтвердження адміністратора -->
+    <!-- Стан 2: доступ обмежено адміністратором (порушення правил) -->
     <div class="profile-pending" id="profilePending" style="display:none;">
       <div class="profile-status-row">
         <span class="status-dot-wrap" id="pendingDotWrap">
@@ -283,15 +311,15 @@
           <span class="status-ring"></span>
         </span>
         <div class="profile-status-text">
-          <p class="profile-status-label">Очікує підтвердження</p>
+          <p class="profile-status-label">Доступ обмежено</p>
           <p class="profile-status-sub" id="pendingEmail">—</p>
         </div>
       </div>
-      <p class="profile-pending-note">Адміністратор має підтвердити акаунт — після цього записи почнуть синхронізуватись автоматично. Це одноразово.</p>
+      <p class="profile-pending-note">Адміністратор обмежив синхронізацію для цього акаунту. Якщо вважаєте це помилкою — зверніться до адміністратора.</p>
       <button class="data-btn" id="cloudSignOutBtnPending" type="button">Вийти</button>
     </div>
 
-    <!-- Стан 3: авторизований і підтверджений — повні налаштування -->
+    <!-- Стан 3: авторизований, доступ активний за замовчуванням — повні налаштування -->
     <div class="profile-full" id="profileFull" style="display:none;">
       <div class="profile-status-row">
         <span class="status-dot-wrap" id="fullDotWrap">
@@ -309,7 +337,7 @@
       <div class="profile-user-card">
         <div class="profile-avatar" aria-hidden="true"></div>
         <div class="profile-user-text">
-          <p class="profile-user-name" id="profileUserName">—</p>
+          <input class="profile-user-name-input" id="profileUserNameInput" type="text" placeholder="Ваше ім'я" maxlength="60">
           <p class="profile-user-email" id="profileUserEmail">—</p>
         </div>
         <span class="profile-approved-badge">Доступ підтверджено</span>
@@ -363,21 +391,20 @@
 
 <!-- ---------- Bottom navigation ----------
      Закріплена position:fixed знизу, завжди видима, незалежно від того,
-     яке вікно (або жодне) зараз відкрите. Іконки поки що порожні
-     заглушки (.nav-icon) — постав власні зображення/SVG замість них
-     пізніше, наприклад через background-image в CSS-класі виду
-     .nav-icon-auth { background-image: url('iconAuth.png'); } -->
+     яке вікно (або жодне) зараз відкрите. Іконки — user.png, system.png,
+     bar-graph.png у корені репозиторію (постав туди свої зображення,
+     той самий підхід, що й з workDay.png/offDay.png). -->
 <nav class="bottom-nav" id="bottomNav">
   <button class="nav-btn" type="button" data-window="auth">
-    <img class="nav-icon" src="user.png">
+    <img class="nav-icon" src="user.png" alt="">
     <span class="nav-label">Профіль</span>
   </button>
   <button class="nav-btn" type="button" data-window="settings">
-    <img class="nav-icon" src="system.png">
+    <img class="nav-icon" src="system.png" alt="">
     <span class="nav-label">Налаштування</span>
   </button>
   <button class="nav-btn" type="button" data-window="top">
-    <img class="nav-icon" src="bar-graph.png">
+    <img class="nav-icon" src="bar-graph.png" alt="">
     <span class="nav-label">Топ</span>
   </button>
 </nav>

@@ -27,6 +27,13 @@ const CORE_PRODUCTS = [
   { code: '4320', rate: 14.21 }
 ];
 
+// R&D: не "виріб" процесу, а фіксований виняток — одноденне переміщення
+// людини на інший процес для підмоги. Рахується по годинах (не шт) і
+// буде присутній однаково для всіх процесів, які додамо пізніше.
+const RND_PRODUCT = { code: 'R&D', rate: 210 };
+function isHourlyCode(code) { return code === RND_PRODUCT.code; }
+function unitFor(code) { return isHourlyCode(code) ? 'год' : 'шт'; }
+
 const STORAGE_KEY = 'shiftTrackerEarnings';
 
 let earningsData = {};   // { 'YYYY-MM-DD': [{code, qty, rate, amount}, ...] }
@@ -66,7 +73,7 @@ function deleteCustomProduct(code) {
   saveCustomProducts();
   if (selectedProduct === code) selectedProduct = CORE_PRODUCTS[0].code;
 }
-function allProducts() { return CORE_PRODUCTS.concat(customProducts); }
+function allProducts() { return [RND_PRODUCT].concat(CORE_PRODUCTS, customProducts); }
 function findProduct(code) { return allProducts().find(p => p.code === code); }
 
 // ---------- Unpaid leave days ("вихідний за свій рахунок") ----------
@@ -354,7 +361,7 @@ function renderTodayEntries() {
   wrap.innerHTML = withIdx.map(({ e, idx }) =>
     '<div class="today-entry-row' + (e.deleted ? ' phantom' : '') + '" data-idx="' + idx + '">' +
       '<span class="today-entry-code">' + e.code + '</span>' +
-      '<span>' + e.qty + ' шт</span>' +
+      '<span>' + e.qty + ' ' + unitFor(e.code) + '</span>' +
       (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
       (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
       '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
@@ -621,7 +628,7 @@ function productStatRowHtml(t) {
     '<div class="product-stat-row">' +
       '<div class="product-stat-top">' +
         '<span class="code">' + t.code + '</span>' +
-        '<span class="qty">' + t.qty.toLocaleString('uk-UA') + ' шт</span>' +
+        '<span class="qty">' + t.qty.toLocaleString('uk-UA') + ' ' + unitFor(t.code) + '</span>' +
         '<span class="amt">' + fmtMoney(t.amount) + '</span>' +
       '</div>' +
       '<div class="product-bar-track"><div class="product-bar-fill" style="width:' + pct + '%"></div></div>' +
@@ -944,6 +951,13 @@ function productTile(p) {
 // Sets the two fixed built-in tiles' text once at startup and wires their
 // click handlers — they never get torn down or rebuilt after this.
 function initCoreProductTiles() {
+  const rndTile = document.getElementById('rndTile');
+  if (rndTile) {
+    document.getElementById('rndTileRate').textContent = RND_PRODUCT.rate.toFixed(2) + ' ₴/год';
+    rndTile.dataset.code = RND_PRODUCT.code;
+    rndTile.addEventListener('click', () => { selectedProduct = RND_PRODUCT.code; updateProductSelection(); updatePreview(); });
+  }
+
   const tileIds = ['coreTile0', 'coreTile1'];
   CORE_PRODUCTS.forEach((p, i) => {
     const tile = document.getElementById(tileIds[i]);
@@ -1030,9 +1044,14 @@ function updatePreview() {
   const product = findProduct(selectedProduct);
   const preview = document.getElementById('previewLine');
   const submitBtn = document.getElementById('submitEntry');
+  const qtyLabel = document.getElementById('qtyLabel');
+  const qtyInput = document.getElementById('qtyInput');
+  const hourly = !!product && isHourlyCode(product.code);
+  if (qtyLabel) qtyLabel.textContent = hourly ? 'Кількість годин' : 'Кількість, шт';
+  if (qtyInput) qtyInput.placeholder = hourly ? 'напр. 8' : 'напр. 173';
   if (qty > 0 && product) {
     const amount = qty * product.rate;
-    preview.innerHTML = qty + ' шт × ' + product.rate.toFixed(2) + ' ₴ = <b>' + fmtMoney(amount) + '</b>';
+    preview.innerHTML = qty + ' ' + unitFor(product.code) + ' × ' + product.rate.toFixed(2) + ' ₴ = <b>' + fmtMoney(amount) + '</b>';
     submitBtn.disabled = false;
   } else {
     preview.textContent = '';
@@ -1076,7 +1095,7 @@ function renderDayProductSummary() {
     const g = groups[gKey];
     return (
       '<div class="day-summary-row">' +
-        '<span class="day-summary-qty"><b>' + g.qty + '</b> шт</span>' +
+        '<span class="day-summary-qty"><b>' + g.qty + '</b> ' + unitFor(g.code) + '</span>' +
         '<span class="day-summary-code">' + g.code + '</span>' +
         (g.order
           ? '<span class="day-summary-order">Зам. №' + g.order + '</span>'
@@ -1086,7 +1105,7 @@ function renderDayProductSummary() {
   }).join('');
 
   const totalsHtml = codeOrder.map(code =>
-    '<span class="day-summary-chip"><b>' + codeTotals[code] + '</b> шт · ' + code + '</span>'
+    '<span class="day-summary-chip"><b>' + codeTotals[code] + '</b> ' + unitFor(code) + ' · ' + code + '</span>'
   ).join('');
 
   wrap.innerHTML =
@@ -1108,7 +1127,7 @@ function renderEntryList() {
       row.className = 'entry-row' + (e.deleted ? ' phantom' : '');
       const remainingMs = e.deleted ? Math.max(0, PURGE_DELAY_MS - (Date.now() - (e.deletedAt || 0))) : 0;
       row.innerHTML =
-        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' шт</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/шт</span></div>' +
+        '<div class="entry-info"><b>' + e.code + '</b><span> · ' + e.qty + ' ' + unitFor(e.code) + '</span><span class="entry-rate">' + (e.order ? 'Зам. №' + e.order + ' · ' : '') + e.rate.toFixed(2) + ' ₴/' + unitFor(e.code) + '</span></div>' +
         '<div class="entry-row-right">' +
           (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
           '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
@@ -1311,6 +1330,8 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   initCoreProductTiles();
   initCloudSyncUI();
   initAppNav();
+  initDevNoticeAccordion();
+  initAuthReminder();
 
   renderToday();
   renderGoal();
@@ -1368,7 +1389,7 @@ function initCloudSyncUI() {
   const pendingEmail = document.getElementById('pendingEmail');
   const cloudSyncLabel = document.getElementById('cloudSyncLabel');
   const cloudSyncTime = document.getElementById('cloudSyncTime');
-  const userName = document.getElementById('profileUserName');
+  const nameInput = document.getElementById('profileUserNameInput');
   const userEmail = document.getElementById('profileUserEmail');
 
   const signInBtn = document.getElementById('cloudSignInBtn');
@@ -1379,8 +1400,8 @@ function initCloudSyncUI() {
   function setDotState(wrapEl, state) {
     wrapEl.className = 'status-dot-wrap';
     if (state === 'connected') wrapEl.classList.add('is-green');
-    else if (state === 'offline') wrapEl.classList.add('is-red');
-    else wrapEl.classList.add('is-orange'); // connecting / pending
+    else if (state === 'offline' || state === 'blocked') wrapEl.classList.add('is-red');
+    else wrapEl.classList.add('is-orange'); // connecting
   }
 
   function formatSyncTime(ts) {
@@ -1398,9 +1419,9 @@ function initCloudSyncUI() {
 
     if (status.state === 'signed-out') {
       loginBox.style.display = '';
-    } else if (status.state === 'pending') {
+    } else if (status.state === 'blocked') {
       pendingBox.style.display = '';
-      setDotState(pendingDotWrap, 'pending');
+      setDotState(pendingDotWrap, 'blocked');
       pendingEmail.textContent = status.email || '';
     } else {
       fullBox.style.display = '';
@@ -1409,7 +1430,7 @@ function initCloudSyncUI() {
       else if (status.state === 'offline') cloudSyncLabel.textContent = 'Немає з’єднання — записи чекають локально';
       else cloudSyncLabel.textContent = 'З’єднання…';
       cloudSyncTime.textContent = formatSyncTime(status.lastSyncedAt);
-      userName.textContent = status.name || '—';
+      if (document.activeElement !== nameInput) nameInput.value = status.name || '';
       userEmail.textContent = status.email || '—';
     }
   }
@@ -1440,6 +1461,19 @@ function initCloudSyncUI() {
       window.CloudSync.forceSync();
     }
   });
+
+  if (nameInput) {
+    nameInput.addEventListener('change', () => {
+      const trimmed = nameInput.value.trim();
+      if (!trimmed) { nameInput.value = ''; return; } // порожнє ім'я не зберігаємо
+      if (window.CloudSync && typeof window.CloudSync.updateDisplayName === 'function') {
+        window.CloudSync.updateDisplayName(trimmed).catch(() => {});
+      }
+    });
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') nameInput.blur(); // тригерить 'change' і закриває клавіатуру
+    });
+  }
 
   // "Лінія роботи" / "Процес" — поки що суто локальні поля (окрема
   // заготовка під майбутні публічні профілі), не йдуть у Firebase.
@@ -1520,6 +1554,58 @@ function initAppNav() {
 
   document.querySelectorAll('.app-window [data-close-window]').forEach(btn => {
     btn.addEventListener('click', closeAllWindows);
+  });
+}
+
+// ---------- Dev notice accordion ----------
+// max-height iде через JS (CSS max-height:none не анімується), а
+// рядки тексту всередині проявляються самі через CSS transition-delay
+// (див. .dev-notice-line в style.css) — тут лише перемикання класу.
+function initDevNoticeAccordion() {
+  const notice = document.getElementById('devNotice');
+  const toggle = document.getElementById('devNoticeToggle');
+  const body = document.getElementById('devNoticeBody');
+  if (!notice || !toggle || !body) return;
+
+  function open() {
+    notice.classList.add('open');
+    toggle.setAttribute('aria-expanded', 'true');
+    body.style.maxHeight = body.scrollHeight + 'px';
+  }
+  function close() {
+    notice.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
+    body.style.maxHeight = '0px';
+  }
+
+  toggle.addEventListener('click', () => {
+    if (notice.classList.contains('open')) close();
+    else open();
+  });
+
+  document.addEventListener('click', (e) => {
+    if (notice.classList.contains('open') && !notice.contains(e.target)) close();
+  });
+}
+
+// ---------- Auth reminder (home screen) ----------
+// Показується, поки немає підтвердженого cloud-аккаунту (signed-out або
+// blocked) — ховається сама, щойно з'являється звʼязок із хмарою.
+function initAuthReminder() {
+  const reminder = document.getElementById('authReminder');
+  if (!reminder) return;
+
+  function render(status) {
+    const show = !status || status.state === 'signed-out' || status.state === 'blocked';
+    reminder.style.display = show ? '' : 'none';
+  }
+
+  window.addEventListener('cloudsync:status', (e) => render(e.detail));
+  render(window.CloudSync ? window.CloudSync.getStatus() : { state: 'signed-out' });
+
+  reminder.addEventListener('click', () => {
+    const authBtn = document.querySelector('.nav-btn[data-window="auth"]');
+    if (authBtn) authBtn.click();
   });
 }
 
