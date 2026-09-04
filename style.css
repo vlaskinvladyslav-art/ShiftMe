@@ -93,17 +93,6 @@ html { touch-action: manipulation; }
 }
 @keyframes splashCaptionIn { to { opacity: 1; } }
 
-.splash-version {
-  margin-top: 4px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  color: var(--line);
-  opacity: 0;
-  animation: splashCaptionIn 0.6s ease 0.5s forwards;
-  position: relative;
-}
-
 /* ---------- App entrance choreography ---------- */
 /* Uses `transition`, not `animation`, on purpose: `animation` is a single
    shorthand property, so a second `animation` declared on the same element
@@ -1165,29 +1154,17 @@ h1 span { color: var(--work); }
   background:
     radial-gradient(circle at 20% 25%, rgba(244, 201, 93, 0.35), transparent 50%),
     radial-gradient(circle at 80% 75%, rgba(67, 198, 172, 0.30), transparent 50%);
-  
   filter: blur(40px);
   -webkit-filter: blur(40px);
-
   will-change: transform;
-  
-  /* Пришвидшили до 8 секунд для очевидного руху */
-  animation: profileBgDrift 6s ease-in-out infinite alternate;
-
+  /* Пришвидшено до 8с для очевиднішого руху */
+  animation: profileBgDrift 8s ease-in-out infinite alternate;
 }
-
 @keyframes profileBgDrift {
-  0% { 
-    transform: translate3d(-16%, -9%, 0) scale(1) rotate(0deg); 
-  }
-  50% {
-    transform: translate3d(7%, -6%, 0) scale(1.32) rotate(2deg);
-  }
-  100% { 
-    transform: translate3d(16%, 9%, 0) scale(1.5) rotate(-9deg); 
-  }
+  0% { transform: translate3d(-16%, -9%, 0) scale(1) rotate(0deg); }
+  50% { transform: translate3d(7%, -6%, 0) scale(1.32) rotate(2deg); }
+  100% { transform: translate3d(16%, 9%, 0) scale(1.5) rotate(-9deg); }
 }
-
 .profile-login-content { position: relative; }
 .profile-login-icon {
   width: 56px;
@@ -1207,17 +1184,15 @@ h1 span { color: var(--work); }
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 
-  /* Запускаємо плавну анімацію паріння */
+  /* Плавне паріння */
   animation: cloudFloat 4.5s ease-in-out infinite;
 }
-
-/* Окремо анімуємо сама символ хмарки всередині */
+/* Окремо анімуємо сам символ хмарки всередині */
 .profile-login-icon span {
   display: inline-block;
   will-change: transform, opacity;
   animation: cloudPulse 4.5s ease-in-out infinite;
 }
-
 @keyframes cloudFloat {
   0%, 100% {
     transform: translate3d(0, 0, 0);
@@ -1225,26 +1200,17 @@ h1 span { color: var(--work); }
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
   50% {
-    /* Піднімається на 4px, межа стає виразнішою, з'являється м'яка тінь */
     transform: translate3d(0, -4px, 0);
-    border-color: rgba(244, 201, 93, 0.4); /* або ваш акцентний колір */
+    border-color: rgba(244, 201, 93, 0.4);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12),
-                0 0 12px rgba(244, 201, 93, 0.15);
+      0 0 12px rgba(244, 201, 93, 0.15);
   }
 }
-
-/* Легке «дихання» самої хмарки */
+/* Легке "дихання" самої хмарки */
 @keyframes cloudPulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.75;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 1;
-  }
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.08); opacity: 1; }
 }
-
 .profile-login-title {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 700;
@@ -1534,6 +1500,7 @@ h1 span { color: var(--work); }
   padding: 18px 18px 26px;
   max-height: 85vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   transform: translateY(24px);
   transition: transform 0.32s cubic-bezier(0.22, 0.9, 0.32, 1);
 }
@@ -1918,7 +1885,8 @@ h1 span { color: var(--work); }
    скролиться незалежно (overflow-y: auto), а overscroll-behavior:
    contain не дає докрутці до краю вмісту "провалитись" далі, в body
    під вікном (типова проблема scroll chaining на iOS Safari). */
-body.nav-window-open { overflow: hidden; }
+body.nav-window-open,
+body.day-modal-open { overflow: hidden; }
 
 .app-window {
   position: fixed;
@@ -1936,9 +1904,9 @@ body.nav-window-open { overflow: hidden; }
   pointer-events: none;
   transform: translateY(110px);
   transition:
-    opacity 0.5s cubic-bezier(0.22, 0.9, 0.32, 1),
-    transform 0.5s cubic-bezier(0.22, 0.9, 0.32, 1),
-    visibility 0.4s ease;
+    opacity 0.3s cubic-bezier(0.22, 0.9, 0.32, 1),
+    transform 0.4s cubic-bezier(0.22, 0.9, 0.32, 1),
+    visibility 0.6s ease;
 }
 .app-window.open {
   opacity: 1;
@@ -2177,4 +2145,89 @@ body.day-modal-open .bottom-nav {
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+/* ---------- Settings: shift-config segmented toggles ---------- */
+.settings-group {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.settings-group-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.settings-field-label {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.settings-field-label:not(:first-of-type) { margin-top: 14px; }
+
+.segmented-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 3px;
+}
+.segmented-btn {
+  flex: 1;
+  padding: 9px 6px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.segmented-btn.active {
+  background: var(--surface);
+  color: var(--money);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.settings-field-note {
+  font-size: 10.5px;
+  color: var(--muted);
+  opacity: 0.75;
+  line-height: 1.4;
+  margin-top: 14px;
+}
+
+/* ---------- Profile: read-only shift-info chips ---------- */
+.profile-shift-info {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.profile-shift-chip {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 10px;
+  text-align: center;
+}
+.profile-shift-chip-label {
+  display: block;
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.profile-shift-chip-value {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -2,7 +2,43 @@
 // Reference: Aug 3, 2026 is day 0 of an off-block (3 off, then 3 work, repeating every 6 days).
 // The 6-day cycle is continuous, so it naturally extends backward too —
 // Aug 1–2, 2026 fall on the tail of the previous work-block and are correctly 'work' days.
+// This reference date always describes Бригада 1 — Бригада 2 is the exact
+// mirror of the same 6-day cycle (see getStatus below), never a second
+// hardcoded date, so the two stay perfectly in sync forever.
 const REF_OFF_START = Date.UTC(2026, 7, 3); // Aug 3 2026
+
+// ---------- Бригада / Тип зміни ----------
+// Ці два налаштування ніколи не торкаються самих записів заробітку
+// (shiftTrackerEarnings лишається прив'язаним лише до календарної дати) —
+// вони лише міняють, як дні розфарбовуються "робочий/вихідний" і яку дату
+// вважати "сьогодні". Тому перемикання туди-сюди нічого не губить: жоден
+// запис не видаляється і не переноситься, просто інакше читається той
+// самий календар.
+const SHIFT_CONFIG_KEY = 'shiftTrackerShiftConfig';
+function loadShiftConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SHIFT_CONFIG_KEY) || '{}');
+    return {
+      brigade: raw.brigade === 2 ? 2 : 1,
+      shiftType: raw.shiftType === 'night' ? 'night' : 'day',
+    };
+  } catch (e) {
+    return { brigade: 1, shiftType: 'day' };
+  }
+}
+let shiftConfig = loadShiftConfig();
+
+function saveShiftConfig(next) {
+  shiftConfig = {
+    brigade: next.brigade === 2 ? 2 : 1,
+    shiftType: next.shiftType === 'night' ? 'night' : 'day',
+  };
+  try { localStorage.setItem(SHIFT_CONFIG_KEY, JSON.stringify(shiftConfig)); } catch (e) { /* сховище недоступне */ }
+  if (window.CloudSync && typeof window.CloudSync.updateShiftConfig === 'function') {
+    window.CloudSync.updateShiftConfig(shiftConfig);
+  }
+  window.dispatchEvent(new CustomEvent('shiftconfig:change', { detail: shiftConfig }));
+}
 
 function utcDay(y, m, d) { return Date.UTC(y, m, d); }
 
@@ -10,16 +46,30 @@ function getStatus(y, m, d) {
   const t = utcDay(y, m, d);
   const diffDays = Math.round((t - REF_OFF_START) / 86400000);
   const mod = ((diffDays % 6) + 6) % 6;
-  return mod < 3 ? 'off' : 'work';
+  const brigade1 = mod < 3 ? 'off' : 'work';
+  // Бригада 2 — дзеркальний графік відносно Бригади 1, той самий цикл.
+  return shiftConfig.brigade === 2 ? (brigade1 === 'work' ? 'off' : 'work') : brigade1;
+}
+
+// "Сьогодні" для нічної зміни — це календарна дата, коли зміна
+// РОЗПОЧАЛАСЬ (20:00), а не та, де вона закінчується о 08:00. Тобто до
+// 08:00 ранку "сьогодні" все ще вчорашня дата. Обчислюється щоразу
+// заново (а не один раз при завантаженні), інакше застосунок, залишений
+// відкритим на фоні через зміну, "застрягне" на вчорашньому дні.
+function getEffectiveNow() {
+  const raw = new Date();
+  if (shiftConfig.shiftType === 'night' && raw.getHours() < 8) {
+    return new Date(raw.getTime() - 86400000);
+  }
+  return raw;
 }
 
 const monthNames = ['січня','лютого','березня','квітня','травня','червня','липня','серпня','вересня','жовтня','листопада','грудня'];
 const monthNamesNom = ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень'];
 const weekdayNames = ['неділя','понеділок','вівторок','середа','четвер','пʼятниця','субота'];
 
-const now = new Date();
-let viewYear = now.getFullYear();
-let viewMonth = now.getMonth();
+let viewYear = getEffectiveNow().getFullYear();
+let viewMonth = getEffectiveNow().getMonth();
 
 // ---------- Earnings logic ----------
 const CORE_PRODUCTS = [
@@ -37,6 +87,11 @@ function unitFor(code) { return isHourlyCode(code) ? 'год' : 'шт'; }
 const STORAGE_KEY = 'shiftTrackerEarnings';
 
 let earningsData = {};   // { 'YYYY-MM-DD': [{code, qty, rate, amount}, ...] }
+// IDs that were permanently deleted after the 10-second undo window.
+// They are synced as tombstones so an older copy on another device cannot
+// silently bring a deleted entry back.
+const DELETED_ENTRIES_KEY = 'shiftTrackerDeletedEntries';
+let deletedEntryIds = {};
 let dataReady = false;
 let selectedProduct = CORE_PRODUCTS[0].code;
 let activeDateKey = null; // date currently open in the modal
@@ -166,6 +221,12 @@ function loadEarnings() {
   } catch (e) {
     earningsData = {};
   }
+  try {
+    const deletedRaw = localStorage.getItem(DELETED_ENTRIES_KEY);
+    deletedEntryIds = deletedRaw ? JSON.parse(deletedRaw) : {};
+  } catch (e) {
+    deletedEntryIds = {};
+  }
   dataReady = true;
   resumePendingPurges();
 }
@@ -209,7 +270,12 @@ function scheduleEntryPurge(key, entry, delay) {
     const arr = earningsData[key];
     if (!arr) return;
     const i = arr.indexOf(entry);
-    if (i !== -1) arr.splice(i, 1);
+    if (i !== -1) {
+      const id = ensureEntryId(key, entry, i);
+      deletedEntryIds[id] = Date.now();
+      try { localStorage.setItem(DELETED_ENTRIES_KEY, JSON.stringify(deletedEntryIds)); } catch (e) { /* ignore */ }
+      arr.splice(i, 1);
+    }
     if (arr.length === 0) delete earningsData[key];
     saveEarnings();
     if (activeDateKey === key) renderEntryList();
@@ -244,7 +310,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'earnings-' + dateKey(now.getFullYear(), now.getMonth(), now.getDate()) + '.json';
+  a.download = 'earnings-' + dateKey(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate()) + '.json';
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -277,9 +343,9 @@ function importDataFromFile(file) {
 }
 
 function renderToday() {
-  const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
+  const y = getEffectiveNow().getFullYear(), m = getEffectiveNow().getMonth(), d = getEffectiveNow().getDate();
   document.getElementById('todayDate').textContent =
-    d + ' ' + monthNames[m] + ', ' + weekdayNames[now.getDay()];
+    d + ' ' + monthNames[m] + ', ' + weekdayNames[getEffectiveNow().getDay()];
 
   const status = getStatus(y, m, d);
   const card = document.getElementById('statusCard');
@@ -344,7 +410,7 @@ function renderToday() {
 function renderTodayEntries() {
   const section = document.getElementById('todayEntriesSection');
   const wrap = document.getElementById('todayEntriesList');
-  const todayKey = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKey = dateKey(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
   const entries = earningsData[todayKey] || [];
 
   if (entries.length === 0) {
@@ -372,7 +438,7 @@ function renderTodayEntries() {
   wrap.querySelectorAll('.today-entry-row').forEach(row => {
     row.addEventListener('click', (ev) => {
       if (ev.target.closest('.today-entry-restore')) return; // handled separately below
-      openModal(now.getFullYear(), now.getMonth(), now.getDate());
+      openModal(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
     });
   });
 
@@ -422,7 +488,7 @@ function renderCalendar() {
     const cell = document.createElement('button');
     cell.type = 'button';
     cell.className = 'day-cell ' + s + (leave ? ' leave' : '');
-    const isToday = viewYear === now.getFullYear() && viewMonth === now.getMonth() && day === now.getDate();
+    const isToday = viewYear === getEffectiveNow().getFullYear() && viewMonth === getEffectiveNow().getMonth() && day === getEffectiveNow().getDate();
     if (isToday) cell.classList.add('today');
 
     let inner = day;
@@ -480,7 +546,7 @@ function last14Days() {
   // Returns [{key, date, total}] for the 14-day window ending today.
   const days = [];
   for (let i = 13; i >= 0; i--) {
-    const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dt = new Date(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
     dt.setDate(dt.getDate() - i);
     const key = dateKey(dt.getFullYear(), dt.getMonth(), dt.getDate());
     days.push({ key, date: dt, total: dayTotal(key) });
@@ -495,7 +561,7 @@ function last14Days() {
 // skipped, so the chart reflects actual shifts worked, not schedule gaps.
 function last14WorkDays() {
   const days = [];
-  const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const cursor = new Date(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
   let guard = 0;
   while (days.length < 14 && guard < 120) {
     const y = cursor.getFullYear(), m = cursor.getMonth(), d = cursor.getDate();
@@ -553,7 +619,7 @@ function renderChart(days) {
 
   let dots = '';
   let labels = '';
-  const todayKeyStr = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayKeyStr = dateKey(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
   days.forEach((d, i) => {
     const x = xAt(i), y = yAt(d.total);
     const isToday = d.key === todayKeyStr;
@@ -706,7 +772,7 @@ function saveGoals() {
     return false;
   }
 }
-function currentMonthKey() { return now.getFullYear() + '-' + pad(now.getMonth() + 1); }
+function currentMonthKey() { return getEffectiveNow().getFullYear() + '-' + pad(getEffectiveNow().getMonth() + 1); }
 
 function countWorkDaysInMonth(y, m) {
   const days = new Date(y, m + 1, 0).getDate();
@@ -729,7 +795,7 @@ function computeGoalPlan() {
   const goal = goalsData[mk];
   if (!(goal > 0)) return null;
 
-  const y = now.getFullYear(), m = now.getMonth(), today = now.getDate();
+  const y = getEffectiveNow().getFullYear(), m = getEffectiveNow().getMonth(), today = getEffectiveNow().getDate();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const totalWorkDays = countWorkDaysInMonth(y, m);
   const earned = monthEarnedSoFar(y, m); // whole month, including today — used for the overall progress bar
@@ -787,14 +853,14 @@ function renderGoal() {
     card.dataset.state = plan ? 'editing' : 'setup';
     document.getElementById('goalSetupIcon').style.display = plan ? 'none' : '';
     document.getElementById('goalSetupTitle').textContent = plan
-      ? 'Змінити ціль на ' + monthNames[now.getMonth()]
+      ? 'Змінити ціль на ' + monthNames[getEffectiveNow().getMonth()]
       : 'Встанови ціль на місяць';
     document.getElementById('goalSetupSub').style.display = plan ? 'none' : '';
     document.getElementById('goalInput').value = plan ? plan.goal : '';
     return;
   }
 
-  document.getElementById('goalMonthName').textContent = monthNamesNom[now.getMonth()];
+  document.getElementById('goalMonthName').textContent = monthNamesNom[getEffectiveNow().getMonth()];
   document.getElementById('goalFill').classList.toggle('reached', plan.reached);
   requestAnimationFrame(() => {
     document.getElementById('goalFill').style.width = plan.progressPct + '%';
@@ -1292,7 +1358,7 @@ document.getElementById('submitEntry').addEventListener('click', () => {
 });
 
 document.getElementById('addEarnToday').addEventListener('click', () => {
-  openModal(now.getFullYear(), now.getMonth(), now.getDate());
+  openModal(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
 });
 
 document.getElementById('prevMonth').addEventListener('click', () => {
@@ -1332,6 +1398,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   initAppNav();
   initDevNoticeAccordion();
   initAuthReminder();
+  initShiftSettings();
 
   renderToday();
   renderGoal();
@@ -1346,6 +1413,84 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   });
 })();
 
+// ---------- Cloud merge helpers ----------
+// Existing records predate permanent IDs. Their ID is generated once from
+// their immutable historical fields, so the same copied record receives the
+// same ID on another device. New IDs are then persisted with the record.
+function ensureEntryId(key, entry, index) {
+  if (entry.id) return entry.id;
+  const seed = [key, entry.time || '', entry.code || '', entry.qty || '', entry.rate || '', entry.amount || '', entry.order || '', index].join('|');
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i++) hash = Math.imul(hash ^ seed.charCodeAt(i), 16777619);
+  entry.id = 'e_' + (hash >>> 0).toString(36) + '_' + String(index || 0);
+  return entry.id;
+}
+
+function normalizeEarnings(source) {
+  const out = {};
+  Object.keys(source || {}).forEach(key => {
+    const arr = Array.isArray(source[key]) ? source[key] : [];
+    out[key] = arr.map((entry, index) => {
+      const copy = { ...entry };
+      ensureEntryId(key, copy, index);
+      return copy;
+    });
+    if (!out[key].length) delete out[key];
+  });
+  return out;
+}
+
+function mergeBundles(cloudBundle, localBundle) {
+  const cloud = cloudBundle || {};
+  const local = localBundle || {};
+  const cloudDeleted = cloud.deletedEntryIds || {};
+  const localDeleted = local.deletedEntryIds || {};
+  const mergedDeleted = { ...cloudDeleted, ...localDeleted };
+
+  const byId = new Map();
+  function add(source) {
+    const normalized = normalizeEarnings(source || {});
+    Object.keys(normalized).forEach(key => normalized[key].forEach((entry, index) => {
+      const id = ensureEntryId(key, entry, index);
+      const existing = byId.get(id);
+      // The same entry may exist in both copies. Prefer the version marked
+      // deleted during the undo window; otherwise either copy is equivalent.
+      if (!existing || (entry.deleted && !existing.entry.deleted)) byId.set(id, { key, entry });
+    }));
+  }
+  add(cloud.earnings);
+  add(local.earnings);
+
+  const earnings = {};
+  byId.forEach(({ key, entry }, id) => {
+    if (mergedDeleted[id]) return;
+    if (!earnings[key]) earnings[key] = [];
+    earnings[key].push(entry);
+  });
+
+  // Goals are keyed by month. A numeric goal has no timestamp in the current
+  // data model, so keep the local value on a direct conflict to preserve the
+  // user's latest action on the device currently being used.
+  const goals = { ...(cloud.goals || {}), ...(local.goals || {}) };
+
+  // Custom products are naturally keyed by code in the current app.
+  const productsByCode = new Map();
+  [...(cloud.customProducts || []), ...(local.customProducts || [])].forEach(p => {
+    if (p && p.code) productsByCode.set(p.code, { ...p });
+  });
+
+  // Leave days are a set: if either copy marks a date, keep that information.
+  const leaveDaysMerged = { ...(cloud.leaveDays || {}), ...(local.leaveDays || {}) };
+
+  return {
+    earnings,
+    goals,
+    customProducts: Array.from(productsByCode.values()),
+    leaveDays: leaveDaysMerged,
+    deletedEntryIds: mergedDeleted,
+  };
+}
+
 // ---------- Bridge for firebase-sync.js ----------
 // A module script can't see this file's top-level let/const bindings by
 // name, so this is the one deliberate, explicit door between the two:
@@ -1353,23 +1498,37 @@ document.getElementById('importFile').addEventListener('change', (e) => {
 // functions, never by reaching into script.js's internals directly.
 window.AppBridge = {
   getLocalBundle() {
-    return { earnings: earningsData, goals: goalsData, customProducts, leaveDays };
+    return { earnings: normalizeEarnings(earningsData), goals: goalsData, customProducts, leaveDays, deletedEntryIds };
   },
   applyCloudBundle(bundle) {
     earningsData = (bundle && bundle.earnings) || {};
     goalsData = (bundle && bundle.goals) || {};
     customProducts = (bundle && bundle.customProducts) || [];
     leaveDays = (bundle && bundle.leaveDays) || {};
+    deletedEntryIds = (bundle && bundle.deletedEntryIds) || {};
+    earningsData = normalizeEarnings(earningsData);
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(earningsData)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(GOALS_KEY, JSON.stringify(goalsData)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(customProducts)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveDays)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(DELETED_ENTRIES_KEY, JSON.stringify(deletedEntryIds)); } catch (e) { /* ignore */ }
     resumePendingPurges();
     renderToday();
     renderGoal();
     renderTodayEntries();
     renderCalendar();
     renderStats();
+  },
+  mergeBundles,
+  // Викликається firebase-sync.js лише коли на ЦЬОМУ пристрої ще немає
+  // власного shiftTrackerShiftConfig (перший вхід) — щоб не затерти
+  // налаштування, які людина вже свідомо обрала тут.
+  hasLocalShiftConfig() {
+    try { return localStorage.getItem(SHIFT_CONFIG_KEY) !== null; } catch (e) { return false; }
+  },
+  applyCloudShiftConfig(cfg) {
+    if (!cfg) return;
+    saveShiftConfig({ brigade: cfg.brigade, shiftType: cfg.shiftType });
   },
 };
 
@@ -1426,9 +1585,9 @@ function initCloudSyncUI() {
     } else {
       fullBox.style.display = '';
       setDotState(fullDotWrap, status.state); // connecting / connected / offline
-      if (status.state === 'connected') cloudSyncLabel.textContent = 'З’єднано з базою';
-      else if (status.state === 'offline') cloudSyncLabel.textContent = 'Немає з’єднання — записи чекають локально';
-      else cloudSyncLabel.textContent = 'З’єднання…';
+      if (status.state === 'connected') cloudSyncLabel.textContent = 'Синхронізовано';
+      else if (status.state === 'offline') cloudSyncLabel.textContent = 'Не вдалось синхронізувати — спробуємо ще раз пізніше';
+      else cloudSyncLabel.textContent = 'Синхронізація…';
       cloudSyncTime.textContent = formatSyncTime(status.lastSyncedAt);
       if (document.activeElement !== nameInput) nameInput.value = status.name || '';
       userEmail.textContent = status.email || '—';
@@ -1554,6 +1713,70 @@ function initAppNav() {
 
   document.querySelectorAll('.app-window [data-close-window]').forEach(btn => {
     btn.addEventListener('click', closeAllWindows);
+  });
+}
+
+// ---------- Shift settings (Бригада / Тип зміни) ----------
+// Джерело правди — shiftConfig (script.js, синхронізовано з Firebase
+// через CloudSync.updateShiftConfig). Ця функція лише малює поточний
+// стан у двох місцях (Налаштування — перемикачі, Профіль — read-only
+// чіпи) і слухає зміни, щоб обидва місця й сам календар лишались
+// синхронними, звідки б зміна не прийшла (клік тут, чи підтягнута
+// конфігурація з хмари при вході).
+function initShiftSettings() {
+  const brigadeToggle = document.getElementById('brigadeToggle');
+  const shiftTypeToggle = document.getElementById('shiftTypeToggle');
+  const chipProcess = document.getElementById('profileShiftProcess');
+  const chipBrigade = document.getElementById('profileShiftBrigade');
+  const chipType = document.getElementById('profileShiftType');
+  const processInput = document.getElementById('profileProcessInput');
+  if (!brigadeToggle || !shiftTypeToggle) return;
+
+  function paintToggle(toggleEl, value) {
+    toggleEl.querySelectorAll('.segmented-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.value === String(value));
+    });
+  }
+
+  function paintChips() {
+    if (chipBrigade) chipBrigade.textContent = shiftConfig.brigade === 2 ? '2 зміна' : '1 зміна';
+    if (chipType) chipType.textContent = shiftConfig.shiftType === 'night' ? 'Нічна зміна' : 'Денна зміна';
+    if (chipProcess) chipProcess.textContent = (processInput && processInput.value.trim()) || '—';
+  }
+
+  function render() {
+    paintToggle(brigadeToggle, shiftConfig.brigade);
+    paintToggle(shiftTypeToggle, shiftConfig.shiftType);
+    paintChips();
+  }
+
+  render();
+
+  brigadeToggle.querySelectorAll('.segmented-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const brigade = btn.dataset.value === '2' ? 2 : 1;
+      if (brigade === shiftConfig.brigade) return;
+      saveShiftConfig({ brigade: brigade, shiftType: shiftConfig.shiftType });
+    });
+  });
+  shiftTypeToggle.querySelectorAll('.segmented-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const shiftType = btn.dataset.value === 'night' ? 'night' : 'day';
+      if (shiftType === shiftConfig.shiftType) return;
+      saveShiftConfig({ brigade: shiftConfig.brigade, shiftType: shiftType });
+    });
+  });
+
+  // "Процес" у профілі так само лише дзеркалиться в чіп — сам вхідний
+  // текст лишається редагованим тільки нижче, в profileProcessInput.
+  if (processInput) processInput.addEventListener('input', paintChips);
+
+  window.addEventListener('shiftconfig:change', () => {
+    render();
+    renderCalendar();
+    renderToday();
+    renderStats();
+    renderGoal();
   });
 }
 

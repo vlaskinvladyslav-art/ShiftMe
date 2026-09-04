@@ -199,7 +199,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.8.0 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.8.1 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -289,7 +289,7 @@
     <div class="profile-login" id="profileLogin">
       <div class="profile-login-bg" aria-hidden="true"></div>
       <div class="profile-login-content">
-        <div class="profile-login-icon" aria-hidden="true"><span>☁</span></div>
+        <div class="profile-login-icon" aria-hidden="true"><span>☁️</span></div>
         <p class="profile-login-title">Синхронізація між пристроями</p>
         <p class="profile-login-sub">Авторизуйтесь, щоб синхронізувати записи з хмарою та бачити їх на будь-якому пристрої.</p>
         <button class="google-signin-btn" id="cloudSignInBtn" type="button">
@@ -342,6 +342,25 @@
         <span class="profile-approved-badge">Доступ підтверджено</span>
       </div>
 
+      <!-- Read-only — значення підтягуються з "Налаштування" (Бригада/Тип
+           зміни) і з поля "Процес" нижче. Тут їх не можна редагувати
+           напряму — захист від випадкових змін і заготовка під майбутній
+           перегляд профілів інших робітників. -->
+      <div class="profile-shift-info">
+        <div class="profile-shift-chip">
+          <span class="profile-shift-chip-label">Процес</span>
+          <span class="profile-shift-chip-value" id="profileShiftProcess">—</span>
+        </div>
+        <div class="profile-shift-chip">
+          <span class="profile-shift-chip-label">Бригада</span>
+          <span class="profile-shift-chip-value" id="profileShiftBrigade">1 зміна</span>
+        </div>
+        <div class="profile-shift-chip">
+          <span class="profile-shift-chip-label">Тип зміни</span>
+          <span class="profile-shift-chip-value" id="profileShiftType">Денна</span>
+        </div>
+      </div>
+
       <div class="profile-field-group">
         <label class="profile-field">
           <span>Лінія роботи</span>
@@ -368,9 +387,28 @@
       <p class="app-window-title">Налаштування</p>
       <button class="app-window-close" type="button" data-close-window>✕</button>
     </div>
+
+    <div class="settings-group">
+      <p class="settings-group-title">Графік роботи</p>
+
+      <p class="settings-field-label">Бригада</p>
+      <div class="segmented-toggle" id="brigadeToggle">
+        <button type="button" class="segmented-btn" data-value="1">1 зміна</button>
+        <button type="button" class="segmented-btn" data-value="2">2 зміна</button>
+      </div>
+
+      <p class="settings-field-label">Тип зміни</p>
+      <div class="segmented-toggle" id="shiftTypeToggle">
+        <button type="button" class="segmented-btn" data-value="day">Денна (08:00–20:00)</button>
+        <button type="button" class="segmented-btn" data-value="night">Нічна (20:00–08:00)</button>
+      </div>
+
+      <p class="settings-field-note">Записи прив'язані до календарних дат і ніколи не губляться при перемиканні — змінюється лише те, як застосунок розфарбовує робочі/вихідні дні.</p>
+    </div>
+
     <div class="coming-soon-banner">
       <p class="coming-soon-title">Розділ у розробці</p>
-      <p class="coming-soon-sub">Налаштування застосунку з’являться тут згодом</p>
+      <p class="coming-soon-sub">Решта налаштувань застосунку з’являться тут згодом</p>
     </div>
   </div>
 </div>
