@@ -154,8 +154,8 @@
       <div class="dev-notice-body-inner">
         <p class="dev-notice-line">Застосунок перебуває в активній розробці і постійно додається новий функціонал.</p>
         <p class="dev-notice-line">Через це окремі можливості можуть працювати нестабільно — дякуємо за розуміння!</p>
-        <p class="dev-notice-line dev-notice-cta">Бажаєте підтримати розвиток проєкту? Ви можете подякувати автору за. <a href="https://send.monobank.ua/jar/5hP8Kwt2f4" target="_blank" rel="noopener noreferrer">посиланням на банку Monobank</a>.</p>
-        <p class="dev-notice-line dev-notice-cta">Завжди відкритий до ваших ідей та пропозицій. Якщо є думки, як зробити застосунок кращим - <a href="https://t.me/ivladisly" target="_blank" rel="noopener noreferrer">сміливо пишіть</a></p>
+        <p class="dev-notice-line dev-notice-cta">Хочете вплинути на розвиток проєкту? Переходьте в наш <a href="https://t.me/+osEJ4fUs8AZhMTUy" target="_blank" rel="noopener noreferrer">Telegram-чат</a>.</p>
+        <p class="dev-notice-line">Діліться відгуками, а також пропонуйте власні фічі.</p>
       </div>
     </div>
   </div>
@@ -199,7 +199,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.8.1 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.7.0 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -334,7 +334,10 @@
       </div>
 
       <div class="profile-user-card">
-        <div class="profile-avatar" aria-hidden="true"></div>
+        <div class="profile-avatar" id="profileAvatar" aria-hidden="true">
+          <img class="profile-avatar-img" id="profileAvatarImg" alt="" style="display:none;">
+          <span class="profile-avatar-initials" id="profileAvatarInitials"></span>
+        </div>
         <div class="profile-user-text">
           <input class="profile-user-name-input" id="profileUserNameInput" type="text" placeholder="Ваше ім'я" maxlength="60">
           <p class="profile-user-email" id="profileUserEmail">—</p>
