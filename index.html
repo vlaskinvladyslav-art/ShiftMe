@@ -152,8 +152,11 @@
     </button>
     <div class="dev-notice-body" id="devNoticeBody">
       <div class="dev-notice-body-inner">
+        <p class="dev-notice-line">Застосунок перебуває в активній розробці і постійно додається новий функціонал.</p>
+        <p class="dev-notice-line">Через це окремі можливості можуть працювати нестабільно — дякуємо за розуміння!</p>
         <p class="dev-notice-line dev-notice-cta">Бажаєте підтримати розвиток проєкту? Ви можете подякувати автору за. <a href="https://send.monobank.ua/jar/5hP8Kwt2f4" target="_blank" rel="noopener noreferrer">посиланням на банку Monobank</a>.</p>
         <p class="dev-notice-line dev-notice-cta">Завжди відкритий до ваших ідей та пропозицій. Якщо є думки, як зробити застосунок кращим - <a href="https://t.me/ivladisly" target="_blank" rel="noopener noreferrer">сміливо пишіть</a></p>
+        <p class="dev-notice-line">Діліться відгуками, а також пропонуйте власні фічі.</p>
       </div>
     </div>
   </div>
@@ -197,7 +200,7 @@
     <input type="file" id="importFile" accept="application/json" style="display:none;">
   </div>
   <p class="data-note" id="dataNote"></p>
-  <p class="app-footer">ShiftMe v0.7.0 Alpha · Powered by TioDeNadal</p>
+  <p class="app-footer">ShiftMe v0.9.0 Alpha · Powered by TioDeNadal</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -226,6 +229,10 @@
     </p>
 
     <p class="form-label">Виріб</p>
+    <div class="segmented-toggle entry-mode-toggle" id="entryModeToggle">
+      <button type="button" class="segmented-btn active" data-value="single">Один виріб</button>
+      <button type="button" class="segmented-btn" data-value="multi">Кілька позицій</button>
+    </div>
     <div class="product-choice" id="productChoice">
       <div class="product-btn rnd-tile" id="rndTile" title="Одноденне переміщення на інший процес">
         <span class="code">R&amp;D</span><span class="rate" id="rndTileRate"></span>
