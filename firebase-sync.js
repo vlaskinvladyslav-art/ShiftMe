@@ -176,6 +176,72 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
+// ---------- Merge (bootstrap) ----------
+// Раніше: "локальні дані непорожні → перезаписати хмару локальними"
+// (set(), не merge). Це мовчки стирало записи, додані з іншого
+// пристрою/сесії, якщо саме на ЦЬОМУ пристроі localStorage виявився
+// старішим (напр. вхід з іншого браузера/ПК під час тестування).
+// Реальний випадок: 4 зміни, додані на телефоні, зникли з бази після
+// входу з іншого середовища зі старішим локальним знімком.
+//
+// Тепер: завжди об'єднання, ніколи сліпе перезаписування. У спірних
+// випадках лишаємо дані, а не видаляємо — краще зайвий запис на екрані,
+// ніж мовчки втрачена зміна.
+
+function entryIdentity(e) {
+  // `time` — ISO-момент створення запису, з точністю до мс; цього
+  // достатньо, бо один запис завжди створює одна людина одним
+  // натисканням "Зберегти". Фолбек — лише для дуже старих записів,
+  // створених ще до появи поля `time`.
+  return e.time || (JSON.stringify(e.items || []) + '|' + e.amount + '|' + (e.order || ''));
+}
+
+function mergeEarnings(cloudEarnings, localEarnings) {
+  const result = {};
+  const dateKeys = new Set([
+    ...Object.keys(cloudEarnings || {}),
+    ...Object.keys(localEarnings || {}),
+  ]);
+  dateKeys.forEach(key => {
+    const byId = new Map();
+    ((cloudEarnings && cloudEarnings[key]) || []).forEach(e => byId.set(entryIdentity(e), e));
+    ((localEarnings && localEarnings[key]) || []).forEach(e => {
+      const id = entryIdentity(e);
+      const existing = byId.get(id);
+      // Той самий запис є з обох боків, але один бік встиг позначити
+      // його видаленим, а інший — ні: лишаємо НЕвидаленим (безпечніший
+      // бік помилки — зайве на екрані, а не пропажа).
+      if (!existing || (existing.deleted && !e.deleted)) byId.set(id, e);
+    });
+    const merged = Array.from(byId.values());
+    if (merged.length > 0) result[key] = merged;
+  });
+  return result;
+}
+
+function mergeKeyedObject(cloudObj, localObj) {
+  // goals/leaveDays: об'єднання ключів (місяць/дата). При конфлікті
+  // значення на тому самому ключі — перевага локальному (пристрій, що
+  // зараз синхронізується, ймовірно має свіжішу ручну правку).
+  return { ...(cloudObj || {}), ...(localObj || {}) };
+}
+
+function mergeCustomProducts(cloudList, localList) {
+  const byCode = new Map();
+  (cloudList || []).forEach(p => byCode.set(p.code, p));
+  (localList || []).forEach(p => byCode.set(p.code, p)); // локальне виграває при конфлікті коду
+  return Array.from(byCode.values());
+}
+
+function mergeBundles(cloud, local) {
+  return {
+    earnings: mergeEarnings(cloud.earnings, local.earnings),
+    goals: mergeKeyedObject(cloud.goals, local.goals),
+    customProducts: mergeCustomProducts(cloud.customProducts, local.customProducts),
+    leaveDays: mergeKeyedObject(cloud.leaveDays, local.leaveDays),
+  };
+}
+
 // ---------- Bootstrap Sync ----------
 async function bootstrapSync() {
   if (bootstrapped || !window.AppBridge) return;
@@ -187,19 +253,21 @@ async function bootstrapSync() {
     await runOnlineSession(async () => {
       const dataRef = ref(db, 'users/' + currentUser.uid + '/data');
       const cloudSnap = await get(dataRef);
-
       const local = window.AppBridge.getLocalBundle();
-      const localIsEmpty = Object.keys(local.earnings || {}).length === 0;
-      // Незавершений попередній запис (з минулої offline-спроби) має
-      // пріоритет над підтягуванням хмари — інакше він загубиться.
-      const pending = hasSyncPending();
 
-      if (cloudSnap.exists() && localIsEmpty && !pending) {
-        window.AppBridge.applyCloudBundle(cloudSnap.val());
-      } else {
+      if (!cloudSnap.exists()) {
+        // Хмара порожня — нічого зливати, просто перший запис.
         await set(dataRef, local);
         markSyncPending(false);
+        return;
       }
+
+      const merged = mergeBundles(cloudSnap.val() || {}, local);
+      // Застосовуємо об'єднаний результат і локально, і в хмару — після
+      // цього обидва боки бачать однаковий, повний набір даних.
+      window.AppBridge.applyCloudBundle(merged);
+      await set(dataRef, merged);
+      markSyncPending(false);
     });
     lastSyncedAt = Date.now();
     syncState = 'synced';
