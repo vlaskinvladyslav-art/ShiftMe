@@ -36,7 +36,7 @@ const DRY_RUN = process.argv.includes('--dry-run');
 const DEFAULT_PROCESS_ID = 'balancing';
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.cert(serviceAccount),
   databaseURL: 'https://shiftme-18f3a-default-rtdb.europe-west1.firebasedatabase.app',
 });
 
