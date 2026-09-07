@@ -720,11 +720,13 @@ h1 span { color: var(--work); }
   flex-shrink: 0;
 }
 
-/* Phantom (soft-deleted) entries: faded and dashed, with a shrinking bar
-   showing how much of the grace period is left before permanent removal. */
+/* Phantom (soft-deleted) entries: faded, with a shrinking bar (see
+   .phantom-timer-track below) showing how much of the grace period is
+   left before permanent removal. No dashed border — just the opacity
+   drop, so the bottom-edge countdown line is the only "this is being
+   deleted" signal. */
 .entry-row.phantom, .today-entry-row.phantom {
   opacity: 0.45;
-  border-style: dashed;
   cursor: default;
 }
 .entry-row.phantom .entry-amount { text-decoration: line-through; }
@@ -1811,13 +1813,6 @@ h1 span { color: var(--work); }
   vertical-align: middle;
   margin-right: 4px;
 }
-.leave-btn-icon {
-  width: 14px;
-  height: 14px;
-  object-fit: contain;
-  vertical-align: middle;
-  margin-right: 2px;
-}
 .modal.day-off .form-label,
 .modal.day-off .product-choice,
 .modal.day-off .product-add-form,
@@ -1835,25 +1830,44 @@ h1 span { color: var(--work); }
 
 .leave-toggle-btn {
   display: block;
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   background: var(--surface-2);
-  border: 1px dashed var(--line);
-  color: var(--muted);
-  border-radius: 10px;
-  padding: 9px;
-  font-size: 12px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 12.5px;
+  font-weight: 500;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
-  margin-bottom: 12px;
+  margin: 0 auto 14px;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .leave-toggle-btn:active { background: var(--line); }
 .leave-toggle-btn.active {
   background: rgba(180, 140, 255, 0.12);
-  border-style: solid;
   border-color: #c9a8ff;
   color: #c9a8ff;
 }
 .modal.day-off .leave-toggle-btn { display: none; }
+
+.entries-edit-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 6px 4px 12px;
+  text-align: center;
+  transition: color 0.15s ease;
+}
+.entries-edit-btn:active { color: var(--text); }
+.entries-edit-btn.active { color: var(--money); }
 
 .add-earn-btn:disabled {
   opacity: 0.45;

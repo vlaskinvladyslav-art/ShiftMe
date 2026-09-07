@@ -115,6 +115,7 @@ let dataReady = false;
 // рахується по годинах, тому несумісний з рештою (взаємовиключний вибір).
 let selectedProducts = new Set([CORE_PRODUCTS[0].code]);
 let activeDateKey = null; // date currently open in the modal
+let entriesEditMode = false; // чи показані кнопки видалення в списку записів дня
 
 // ---------- Products: 2 built-in + any the person adds themselves ----------
 // Extra products stay hidden behind a "показати всі" toggle so the modal
@@ -323,7 +324,7 @@ function saveEarnings() {
 // every other aggregate above already skip flagged entries, so a phantom
 // entry stops "counting" the instant it's marked, well before it's
 // actually purged from storage.
-const PURGE_DELAY_MS = 15000; // how long an entry stays recoverable (0.8.2: 10s → 15s)
+const PURGE_DELAY_MS = 10000; // how long an entry stays recoverable (0.8.3: 15s → 10s, per updated design)
 
 function scheduleEntryPurge(key, entry, delay) {
   setTimeout(() => {
@@ -1285,9 +1286,27 @@ function renderDayProductSummary() {
     '<div class="day-summary-totals">' + totalsHtml + '</div>';
 }
 
+function updateEntriesEditButton() {
+  const btn = document.getElementById('entriesEditBtn');
+  if (!btn) return;
+  const entries = earningsData[activeDateKey] || [];
+  const hasActiveEntries = entries.some(e => !e.deleted);
+  if (!hasActiveEntries) entriesEditMode = false;
+  btn.style.display = hasActiveEntries ? '' : 'none';
+  btn.textContent = entriesEditMode ? '✓ Готово' : '✎ Редагувати записи';
+  btn.classList.toggle('active', entriesEditMode);
+}
+
+document.getElementById('entriesEditBtn').addEventListener('click', () => {
+  entriesEditMode = !entriesEditMode;
+  updateEntriesEditButton();
+  renderEntryList();
+});
+
 function renderEntryList() {
   const list = document.getElementById('entryList');
   const entries = earningsData[activeDateKey] || [];
+  updateEntriesEditButton();
   list.innerHTML = '';
   renderDayProductSummary();
   if (entries.length === 0) {
@@ -1307,7 +1326,7 @@ function renderEntryList() {
           '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
           (e.deleted
             ? '<button class="entry-restore" data-idx="' + idx + '" title="Скасувати видалення">↺</button>'
-            : '<button class="entry-del" data-idx="' + idx + '">✕</button>') +
+            : (entriesEditMode ? '<button class="entry-del" data-idx="' + idx + '">✕</button>' : '')) +
           '</div>' +
         '</div>' +
         (e.deleted ? '<div class="phantom-timer-track"><div class="delete-line-left" data-remaining="' + remainingMs + '"></div><div class="delete-line-right" data-remaining="' + remainingMs + '"></div></div>' : '');
@@ -1369,6 +1388,8 @@ function renderEntryList() {
 
 function openModal(y, m, d) {
   activeDateKey = dateKey(y, m, d);
+  entriesEditMode = false;
+  updateEntriesEditButton();
   const status = getStatus(y, m, d);
   const dt = new Date(y, m, d);
   document.getElementById('modalTitle').textContent = d + ' ' + monthNames[m] + ' ' + y;
@@ -1408,10 +1429,9 @@ function updateLeaveToggleButton(status) {
   }
   btn.style.display = '';
   const leave = isLeaveDay(activeDateKey);
-  // Заглушка під іконку: <img class="leave-btn-icon" src="leaveDay.png" alt="">
   btn.innerHTML = leave
     ? '✕ Скасувати «вихідний за свій рахунок»'
-    : '<img class="leave-btn-icon" src="leaveDay.png" alt=""> Позначити вихідним за свій рахунок';
+    : 'Позначити вихідним за свій рахунок';
   btn.classList.toggle('active', leave);
 }
 
