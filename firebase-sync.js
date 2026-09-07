@@ -149,8 +149,8 @@ onAuthStateChanged(auth, async (user) => {
       // обирала, а в хмарі вже є збережене налаштування (з іншого пристрою) —
       // підхоплюємо його. Якщо ж тут уже щось обрано локально — не чіпаємо,
       // локальний вибір має пріоритет і саме він піде в хмару нижче.
-      if (window.AppBridge && !window.AppBridge.hasLocalShiftConfig() && (prior.brigade || prior.shiftType)) {
-        window.AppBridge.applyCloudShiftConfig({ brigade: prior.brigade, shiftType: prior.shiftType });
+      if (window.AppBridge && !window.AppBridge.hasLocalShiftConfig() && (prior.brigade || prior.shiftType || prior.line)) {
+        window.AppBridge.applyCloudShiftConfig({ brigade: prior.brigade, shiftType: prior.shiftType, line: prior.line });
       }
 
       const profilePayload = {
@@ -325,12 +325,13 @@ function updateDisplayName(name) {
   });
 }
 
-// ---------- Update Shift Config (Бригада / Тип зміни) ----------
+// ---------- Update Shift Config (Бригада / Тип зміни / Лінія) ----------
 function updateShiftConfig(cfg) {
   if (!currentUser || !cfg) return Promise.resolve();
   return runOnlineSession(() => update(ref(db, 'users/' + currentUser.uid + '/profile'), {
     brigade: cfg.brigade === 2 ? 2 : 1,
     shiftType: cfg.shiftType === 'night' ? 'night' : 'day',
+    line: (cfg.line === 'stator' || cfg.line === 'rotor') ? cfg.line : null,
   })).catch(() => {});
 }
 

@@ -21,9 +21,12 @@ function loadShiftConfig() {
     return {
       brigade: raw.brigade === 2 ? 2 : 1,
       shiftType: raw.shiftType === 'night' ? 'night' : 'day',
+      // Заготовка під майбутню статистику в іншому застосунку: поки що
+      // лише статор/ротор, без впливу на розрахунок календаря.
+      line: (raw.line === 'stator' || raw.line === 'rotor') ? raw.line : null,
     };
   } catch (e) {
-    return { brigade: 1, shiftType: 'day' };
+    return { brigade: 1, shiftType: 'day', line: null };
   }
 }
 let shiftConfig = loadShiftConfig();
@@ -32,6 +35,7 @@ function saveShiftConfig(next) {
   shiftConfig = {
     brigade: next.brigade === 2 ? 2 : 1,
     shiftType: next.shiftType === 'night' ? 'night' : 'day',
+    line: (next.line === 'stator' || next.line === 'rotor') ? next.line : null,
   };
   try { localStorage.setItem(SHIFT_CONFIG_KEY, JSON.stringify(shiftConfig)); } catch (e) { /* сховище недоступне */ }
   if (window.CloudSync && typeof window.CloudSync.updateShiftConfig === 'function') {
@@ -1586,7 +1590,7 @@ window.AppBridge = {
   },
   applyCloudShiftConfig(cfg) {
     if (!cfg) return;
-    saveShiftConfig({ brigade: cfg.brigade, shiftType: cfg.shiftType });
+    saveShiftConfig({ brigade: cfg.brigade, shiftType: cfg.shiftType, line: cfg.line });
   },
 };
 
@@ -1737,27 +1741,39 @@ function initCloudSyncUI() {
     });
   }
 
-  // "Лінія роботи" / "Процес" — поки що суто локальні поля (окрема
-  // заготовка під майбутні публічні профілі), не йдуть у Firebase.
+  // "Лінія роботи" / "Операція" / "Процес" — поки що суто локальні поля
+  // (окрема заготовка під майбутні публічні профілі), не йдуть у Firebase.
   const lineInput = document.getElementById('profileLineInput');
+  const operationInput = document.getElementById('profileOperationInput');
   const processInput = document.getElementById('profileProcessInput');
   const META_KEY = 'shiftTrackerProfileMeta';
 
   try {
     const saved = JSON.parse(localStorage.getItem(META_KEY) || '{}');
     if (lineInput) lineInput.value = saved.line || '';
+    if (operationInput) operationInput.value = saved.operation || '';
     if (processInput) processInput.value = saved.process || '';
   } catch (e) { /* ігноруємо биту локальну сесію */ }
+
+  // Лише цифри — жодних символів, пробілів чи букв.
+  if (operationInput) {
+    operationInput.addEventListener('input', () => {
+      const digitsOnly = operationInput.value.replace(/[^0-9]/g, '');
+      if (digitsOnly !== operationInput.value) operationInput.value = digitsOnly;
+    });
+  }
 
   function saveProfileMeta() {
     try {
       localStorage.setItem(META_KEY, JSON.stringify({
         line: lineInput.value.trim(),
+        operation: operationInput.value.trim(),
         process: processInput.value.trim(),
       }));
     } catch (e) { /* локальне сховище недоступне — просто нічого не зберігаємо */ }
   }
   if (lineInput) lineInput.addEventListener('change', saveProfileMeta);
+  if (operationInput) operationInput.addEventListener('change', saveProfileMeta);
   if (processInput) processInput.addEventListener('change', saveProfileMeta);
 }
 
@@ -1829,27 +1845,36 @@ function initAppNav() {
 function initShiftSettings() {
   const brigadeToggle = document.getElementById('brigadeToggle');
   const shiftTypeToggle = document.getElementById('shiftTypeToggle');
+  const lineToggle = document.getElementById('lineToggle');
   const chipProcess = document.getElementById('profileShiftProcess');
   const chipBrigade = document.getElementById('profileShiftBrigade');
   const chipType = document.getElementById('profileShiftType');
+  const chipLine = document.getElementById('profileShiftLine');
   const processInput = document.getElementById('profileProcessInput');
   if (!brigadeToggle || !shiftTypeToggle) return;
 
   function paintToggle(toggleEl, value) {
+    if (!toggleEl) return;
     toggleEl.querySelectorAll('.segmented-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.value === String(value));
     });
+  }
+
+  function lineLabel(value) {
+    return value === 'stator' ? 'Статор' : value === 'rotor' ? 'Ротор' : '—';
   }
 
   function paintChips() {
     if (chipBrigade) chipBrigade.textContent = shiftConfig.brigade === 2 ? '2 зміна' : '1 зміна';
     if (chipType) chipType.textContent = shiftConfig.shiftType === 'night' ? 'Нічна зміна' : 'Денна зміна';
     if (chipProcess) chipProcess.textContent = (processInput && processInput.value.trim()) || '—';
+    if (chipLine) chipLine.textContent = lineLabel(shiftConfig.line);
   }
 
   function render() {
     paintToggle(brigadeToggle, shiftConfig.brigade);
     paintToggle(shiftTypeToggle, shiftConfig.shiftType);
+    paintToggle(lineToggle, shiftConfig.line);
     paintChips();
   }
 
@@ -1859,16 +1884,26 @@ function initShiftSettings() {
     btn.addEventListener('click', () => {
       const brigade = btn.dataset.value === '2' ? 2 : 1;
       if (brigade === shiftConfig.brigade) return;
-      saveShiftConfig({ brigade: brigade, shiftType: shiftConfig.shiftType });
+      saveShiftConfig({ brigade: brigade, shiftType: shiftConfig.shiftType, line: shiftConfig.line });
     });
   });
   shiftTypeToggle.querySelectorAll('.segmented-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const shiftType = btn.dataset.value === 'night' ? 'night' : 'day';
       if (shiftType === shiftConfig.shiftType) return;
-      saveShiftConfig({ brigade: shiftConfig.brigade, shiftType: shiftType });
+      saveShiftConfig({ brigade: shiftConfig.brigade, shiftType: shiftType, line: shiftConfig.line });
     });
   });
+  if (lineToggle) {
+    lineToggle.querySelectorAll('.segmented-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        // Повторний дотик по вже обраній лінії скасовує вибір —
+        // це поки заготовка, не обов'язкове поле.
+        const line = btn.dataset.value === shiftConfig.line ? null : btn.dataset.value;
+        saveShiftConfig({ brigade: shiftConfig.brigade, shiftType: shiftConfig.shiftType, line: line });
+      });
+    });
+  }
 
   // "Процес" у профілі так само лише дзеркалиться в чіп — сам вхідний
   // текст лишається редагованим тільки нижче, в profileProcessInput.

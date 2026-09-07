@@ -367,13 +367,23 @@
           <span class="profile-shift-chip-label">Тип зміни</span>
           <span class="profile-shift-chip-value" id="profileShiftType">Денна</span>
         </div>
+        <div class="profile-shift-chip">
+          <span class="profile-shift-chip-label">Лінія</span>
+          <span class="profile-shift-chip-value" id="profileShiftLine">—</span>
+        </div>
       </div>
 
       <div class="profile-field-group">
-        <label class="profile-field">
-          <span>Лінія роботи</span>
-          <input type="text" id="profileLineInput" placeholder="напр. Лінія 3" maxlength="40">
-        </label>
+        <div class="profile-field-row">
+          <label class="profile-field profile-field-square">
+            <span>Лінія роботи</span>
+            <input type="text" id="profileLineInput" placeholder="напр. Лінія 3" maxlength="40">
+          </label>
+          <label class="profile-field profile-field-square">
+            <span>Операція</span>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" id="profileOperationInput" placeholder="напр. 12" maxlength="10">
+          </label>
+        </div>
         <label class="profile-field">
           <span>Процес</span>
           <input type="text" id="profileProcessInput" placeholder="напр. Складання" maxlength="40">
@@ -409,6 +419,12 @@
       <div class="segmented-toggle" id="shiftTypeToggle">
         <button type="button" class="segmented-btn" data-value="day">Денна (08:00–20:00)</button>
         <button type="button" class="segmented-btn" data-value="night">Нічна (20:00–08:00)</button>
+      </div>
+
+      <p class="settings-field-label">Лінія <span class="settings-field-label-note">(тимчасова назва)</span></p>
+      <div class="segmented-toggle" id="lineToggle">
+        <button type="button" class="segmented-btn" data-value="stator">Статор</button>
+        <button type="button" class="segmented-btn" data-value="rotor">Ротор</button>
       </div>
 
       <p class="settings-field-note">Записи прив'язані до календарних дат і ніколи не губляться при перемиканні — змінюється лише те, як застосунок розфарбовує робочі/вихідні дні.</p>
