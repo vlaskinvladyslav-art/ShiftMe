@@ -1400,49 +1400,54 @@ h1 span { color: var(--work); }
   white-space: nowrap;
 }
 
-.profile-field-group {
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.profile-info-cell {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
+  border-radius: 12px;
+  padding: 7px 10px;
 }
-.profile-field { display: block; margin-bottom: 10px; }
-.profile-field-row {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.profile-field-row .profile-field { margin-bottom: 0; flex: 1; min-width: 0; }
-.profile-field-square input {
-  aspect-ratio: 1 / 1;
-  text-align: center;
-  font-size: 15px;
-  font-weight: 600;
-}
-.profile-field span {
+.profile-info-cell-readonly { background: var(--surface-2); }
+.profile-info-label {
   display: block;
-  font-size: 11.5px;
+  font-size: 10.5px;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.profile-field-square span { text-align: center; }
-.profile-field input {
+.profile-info-value {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+}
+.profile-info-select,
+.profile-info-cell input {
   width: 100%;
-  padding: 9px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
+  border: none;
+  background: none;
+  padding: 0;
   color: var(--text);
   font-size: 13px;
+  font-weight: 500;
   font-family: 'Inter', sans-serif;
+  appearance: none;
+  -webkit-appearance: none;
 }
+.profile-info-select { cursor: pointer; }
 .profile-field-note {
   font-size: 10.5px;
   color: var(--muted);
   opacity: 0.75;
   line-height: 1.4;
-  margin-top: 2px;
+  margin: 0 0 16px;
 }
 
 .profile-actions { display: flex; gap: 10px; }
@@ -2257,34 +2262,4 @@ body.day-modal-open .bottom-nav {
   opacity: 0.75;
   line-height: 1.4;
   margin-top: 14px;
-}
-
-/* ---------- Profile: read-only shift-info chips ---------- */
-.profile-shift-info {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.profile-shift-chip {
-  flex: 1;
-  min-width: 0;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 9px 10px;
-  text-align: center;
-}
-.profile-shift-chip-label {
-  display: block;
-  font-size: 9.5px;
-  color: var(--muted);
-  margin-bottom: 3px;
-}
-.profile-shift-chip-value {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
