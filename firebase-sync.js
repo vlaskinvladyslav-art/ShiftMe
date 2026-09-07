@@ -188,12 +188,26 @@ onAuthStateChanged(auth, async (user) => {
 // випадках лишаємо дані, а не видаляємо — краще зайвий запис на екрані,
 // ніж мовчки втрачена зміна.
 
+function roundMoney(n) {
+  // 2 знаки після коми — гроші не потребують більшої точності, а це
+  // прибирає дрейф floating-point (0.1+0.2-подібні похибки) як джерело
+  // хибної відмінності між двома копіями того самого запису.
+  return Math.round((Number(n) || 0) * 100) / 100;
+}
+
 function entryIdentity(e) {
   // `time` — ISO-момент створення запису, з точністю до мс; цього
   // достатньо, бо один запис завжди створює одна людина одним
   // натисканням "Зберегти". Фолбек — лише для дуже старих записів,
-  // створених ще до появи поля `time`.
-  return e.time || (JSON.stringify(e.items || []) + '|' + e.amount + '|' + (e.order || ''));
+  // створених ще до появи поля `time` (звідси й проблема з дублями:
+  // без округлення однаковий за суттю запис міг дати два РІЗНІ ключі
+  // через крихітну похибку floating-point у amount/rate між копією
+  // на пристрої й копією в хмарі — і merge чесно тримав "обидва").
+  if (e.time) return e.time;
+  const itemsKey = (e.items || [])
+    .map(it => (it.code || '') + ':' + roundMoney(it.rate) + ':' + roundMoney(it.qty))
+    .join(',');
+  return itemsKey + '|' + roundMoney(e.amount) + '|' + (e.order || '') + '|' + (e.date || '');
 }
 
 function mergeEarnings(cloudEarnings, localEarnings) {
