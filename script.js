@@ -192,6 +192,37 @@ function saveLeaveDays() {
 }
 function isLeaveDay(key) { return !!leaveDays[key]; }
 
+// ---------- Sick leave ("лікарняний") ----------
+// Окрема від "вихідного за свій рахунок" категорія: теж не враховується
+// в заробіток/статистику, але формула компенсації поки невідома, тому
+// зберігаємо суму окремим (поки що виключно ручним) полем на майбутнє —
+// коли формула стане відомою, її буде звідки підхопити.
+const SICK_KEY = 'shiftTrackerSickDays';
+let sickDays = {}; // { 'YYYY-MM-DD': amount|null }
+
+function loadSickDays() {
+  try {
+    const raw = localStorage.getItem(SICK_KEY);
+    sickDays = raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    sickDays = {};
+  }
+}
+function saveSickDays() {
+  try {
+    localStorage.setItem(SICK_KEY, JSON.stringify(sickDays));
+    syncToCloudIfPossible();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function isSickDay(key) { return Object.prototype.hasOwnProperty.call(sickDays, key); }
+function sickAmount(key) { const v = sickDays[key]; return (typeof v === 'number' && !isNaN(v)) ? v : null; }
+// День не враховується в заробіток/ціль/графік, якщо він або "за свій
+// рахунок", або "лікарняний" — обидва не є реальним виробітком.
+function isExcludedDay(key) { return isLeaveDay(key) || isSickDay(key); }
+
 function pad(n) { return String(n).padStart(2, '0'); }
 function fmtTime(iso) {
   if (!iso) return '';
@@ -469,6 +500,33 @@ function renderToday() {
 // Always visible regardless of any goal being set or its progress — a
 // plain, ungated log of today's records, newest first, so the newest
 // entry always lands right at the top the moment it's saved.
+let todayEntriesExpanded = false; // та сама stacking-логіка, що й у entry-list модалки
+
+function todayEntryRowHtml(e, idx, preview) {
+  return (
+    '<div class="today-entry-row' + (e.deleted ? ' phantom' : '') + '" data-idx="' + idx + '" style="--i:' + idx + '">' +
+      '<span class="today-entry-code">' + entryCodesLabel(e) + '</span>' +
+      '<span>' + entryQtyLabel(e) + '</span>' +
+      (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
+      (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
+      '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
+      (!preview && e.deleted ? '<button class="today-entry-restore" data-idx="' + idx + '" title="Відновити">↺</button>' : '') +
+    '</div>'
+  );
+}
+
+function todayEntryStackHtml(withIdx) {
+  const front = withIdx[0]; // withIdx вже новіші-спочатку
+  return (
+    '<div class="entry-stack">' +
+      '<div class="entry-stack-layer" data-depth="2"></div>' +
+      '<div class="entry-stack-layer" data-depth="1"></div>' +
+      '<div class="entry-stack-front">' + todayEntryRowHtml(front.e, front.idx, true) + '</div>' +
+      '<span class="entry-stack-badge">+' + (withIdx.length - 1) + '</span>' +
+    '</div>'
+  );
+}
+
 function renderTodayEntries() {
   const section = document.getElementById('todayEntriesSection');
   const wrap = document.getElementById('todayEntriesList');
@@ -478,6 +536,7 @@ function renderTodayEntries() {
   if (entries.length === 0) {
     section.style.display = 'none';
     wrap.innerHTML = '';
+    todayEntriesExpanded = false;
     return;
   }
   section.style.display = '';
@@ -486,16 +545,26 @@ function renderTodayEntries() {
   // find its way back to the exact entry object.
   const withIdx = entries.map((e, idx) => ({ e, idx })).reverse();
 
-  wrap.innerHTML = withIdx.map(({ e, idx }) =>
-    '<div class="today-entry-row' + (e.deleted ? ' phantom' : '') + '" data-idx="' + idx + '">' +
-      '<span class="today-entry-code">' + entryCodesLabel(e) + '</span>' +
-      '<span>' + entryQtyLabel(e) + '</span>' +
-      (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
-      (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
-      '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
-      (e.deleted ? '<button class="today-entry-restore" data-idx="' + idx + '" title="Відновити">↺</button>' : '') +
-    '</div>'
-  ).join('');
+  if (withIdx.length > 3 && !todayEntriesExpanded) {
+    wrap.innerHTML = todayEntryStackHtml(withIdx);
+    wrap.querySelector('.entry-stack').addEventListener('click', () => {
+      todayEntriesExpanded = true;
+      renderTodayEntries();
+    });
+    return;
+  }
+
+  wrap.innerHTML =
+    (withIdx.length > 3 ? '<button type="button" class="entry-list-collapse">▲ Згорнути список</button>' : '') +
+    withIdx.map(({ e, idx }) => todayEntryRowHtml(e, idx, false)).join('');
+
+  const collapseBtn = wrap.querySelector('.entry-list-collapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      todayEntriesExpanded = false;
+      renderTodayEntries();
+    });
+  }
 
   wrap.querySelectorAll('.today-entry-row').forEach(row => {
     row.addEventListener('click', (ev) => {
@@ -545,19 +614,18 @@ function renderCalendar() {
     const key = dateKey(viewYear, viewMonth, day);
     const total = dayTotal(key);
     const leave = s === 'work' && isLeaveDay(key);
+    const sick = s === 'work' && isSickDay(key);
     monthSum += total;
 
     const cell = document.createElement('button');
     cell.type = 'button';
-    cell.className = 'day-cell ' + s + (leave ? ' leave' : '');
+    cell.className = 'day-cell ' + s + (leave ? ' leave' : '') + (sick ? ' sick' : '');
     const isToday = viewYear === getEffectiveNow().getFullYear() && viewMonth === getEffectiveNow().getMonth() && day === getEffectiveNow().getDate();
     if (isToday) cell.classList.add('today');
 
     let inner = day;
-    if (leave) {
-      // Заглушка під іконку дня "за свій рахунок": постав leaveDay.png у
-      // корінь репозиторію поруч з workDay.png/offDay.png/calendar.png.
-      inner += '<img class="leave-mark" src="leaveDay.png" alt="">';
+    if (leave || sick) {
+      inner += '<span class="dot"></span>';
     } else if (total > 0) {
       inner += '<span class="earn-tag">' + fmtMoneyShort(total) + '₴</span>';
     } else {
@@ -630,7 +698,7 @@ function last14WorkDays() {
   while (days.length < 14 && guard < 120) {
     const y = cursor.getFullYear(), m = cursor.getMonth(), d = cursor.getDate();
     const key = dateKey(y, m, d);
-    if (getStatus(y, m, d) === 'work' && !isLeaveDay(key)) {
+    if (getStatus(y, m, d) === 'work' && !isExcludedDay(key)) {
       days.unshift({ key, date: new Date(y, m, d), total: dayTotal(key) });
     }
     cursor.setDate(cursor.getDate() - 1);
@@ -782,7 +850,7 @@ function renderProductStats() {
     return { code, qty: t.qty, amount: t.amount, pct };
   };
 
-  const core = CORE_PRODUCTS.map(p => withPct(p.code));
+  const core = CORE_PRODUCTS.concat([RND_PRODUCT]).map(p => withPct(p.code));
   const extraUsed = customProducts
     .map(p => withPct(p.code))
     .filter(p => p.amount > 0)
@@ -892,14 +960,14 @@ function computeGoalPlan() {
   let openWorkDaysLeft = 0;
   for (let d = today; d <= daysInMonth; d++) {
     if (getStatus(y, m, d) !== 'work') continue;
-    if (isLeaveDay(dateKey(y, m, d))) continue;
+    if (isExcludedDay(dateKey(y, m, d))) continue;
     trueWorkDaysLeft++;
     if (d === today || dayTotal(dateKey(y, m, d)) === 0) openWorkDaysLeft++;
   }
   const workDaysLeft = openWorkDaysLeft > 0 ? openWorkDaysLeft : trueWorkDaysLeft;
 
   const perDayTarget = workDaysLeft > 0 ? remainingExcludingToday / workDaysLeft : 0;
-  const todayIsWork = getStatus(y, m, today) === 'work' && !isLeaveDay(todayKey);
+  const todayIsWork = getStatus(y, m, today) === 'work' && !isExcludedDay(todayKey);
   const progressPct = goal > 0 ? Math.min(100, (earned / goal) * 100) : 0;
 
   return { goal, earned, remaining, totalWorkDays, workDaysLeft, trueWorkDaysLeft, perDayTarget, todayIsWork, reached, progressPct, y, m, today, daysInMonth, earnedToday };
@@ -996,13 +1064,17 @@ function renderGoalUpcoming(plan) {
     const key = dateKey(plan.y, plan.m, d);
     const scheduledWork = getStatus(plan.y, plan.m, d) === 'work';
     const isLeave = scheduledWork && isLeaveDay(key);
-    const isWork = scheduledWork && !isLeave;
+    const isSick = scheduledWork && isSickDay(key);
+    const isWork = scheduledWork && !isLeave && !isSick;
     const isToday = d === plan.today;
     const dayEarned = dayTotal(key);
     let valueHtml;
     let isDone = !isToday && dayEarned > 0;
 
-    if (isLeave) {
+    if (isSick) {
+      const amt = sickAmount(key);
+      valueHtml = amt !== null ? fmtMoneyShort(amt) + '₴' : 'лік.';
+    } else if (isLeave) {
       valueHtml = 'своя';
     } else if (!isWork) {
       valueHtml = 'вих.';
@@ -1021,7 +1093,7 @@ function renderGoalUpcoming(plan) {
     }
 
     chipsHtml +=
-      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isLeave ? ' chip-leave' : '') + (isDone ? ' chip-done' : '') + '" style="animation-delay:' + (shown * 0.06).toFixed(2) + 's">' +
+      '<div class="goal-chip' + (isToday ? ' chip-today' : '') + (isWork ? '' : ' chip-off') + (isLeave ? ' chip-leave' : '') + (isSick ? ' chip-sick' : '') + (isDone ? ' chip-done' : '') + '" style="animation-delay:' + (shown * 0.06).toFixed(2) + 's">' +
         '<p class="chip-day">' + (isToday ? 'сьогодні' : d + ' ' + monthNames[plan.m].slice(0, 3)) + '</p>' +
         '<p class="chip-val">' + valueHtml + '</p>' +
       '</div>';
@@ -1307,36 +1379,84 @@ document.getElementById('entriesEditBtn').addEventListener('click', () => {
   renderEntryList();
 });
 
+let entryListExpanded = false; // розгорнутий список у модалці дня (скидається при відкритті/закритті)
+
+// Один рядок запису — окрема функція, бо потрібна і в повному списку, і
+// як "обличчя" згорнутої стопки (preview: без кнопок дій, щоб дотик по
+// стопці однозначно розгортав її, а не випадково запускав видалення).
+function entryRowHtml(e, idx, preview) {
+  const remainingMs = e.deleted ? Math.max(0, PURGE_DELAY_MS - (Date.now() - (e.deletedAt || 0))) : 0;
+  const rateLabel = (e.items && e.items.length === 1)
+    ? e.items[0].rate.toFixed(2) + ' ₴/' + unitFor(e.items[0].code) + (e.order ? ' · Зам. №' + e.order : '')
+    : (e.order ? 'Зам. №' + e.order : '');
+  return (
+    '<div class="entry-row' + (e.deleted ? ' phantom' : '') + '" style="--i:' + idx + '">' +
+      '<div class="entry-info"><b>' + entryCodesLabel(e) + '</b><span> · ' + entryQtyLabel(e) + '</span><span class="entry-rate">' + rateLabel + '</span></div>' +
+      '<div class="entry-row-right">' +
+        (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
+        '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
+        (preview ? '' : (e.deleted
+          ? '<button class="entry-restore" data-idx="' + idx + '" title="Скасувати видалення">↺</button>'
+          : (entriesEditMode ? '<button class="entry-del" data-idx="' + idx + '">✕</button>' : ''))) +
+        '</div>' +
+      '</div>' +
+      (!preview && e.deleted ? '<div class="phantom-timer-track"><div class="delete-line-left" data-remaining="' + remainingMs + '"></div><div class="delete-line-right" data-remaining="' + remainingMs + '"></div></div>' : '') +
+    '</div>'
+  );
+}
+
+// Стопка (Stacked Cards): "обличчя" — найновіший запис, позаду — 2 тонкі
+// шари-натяки на решту. Клік будь-де по стопці розгортає повний список.
+function entryStackHtml(entries) {
+  const lastIdx = entries.length - 1;
+  return (
+    '<div class="entry-stack">' +
+      '<div class="entry-stack-layer" data-depth="2"></div>' +
+      '<div class="entry-stack-layer" data-depth="1"></div>' +
+      '<div class="entry-stack-front">' + entryRowHtml(entries[lastIdx], lastIdx, true) + '</div>' +
+      '<span class="entry-stack-badge">+' + (entries.length - 1) + '</span>' +
+    '</div>'
+  );
+}
+
 function renderEntryList() {
   const list = document.getElementById('entryList');
   const entries = earningsData[activeDateKey] || [];
   updateEntriesEditButton();
-  list.innerHTML = '';
   renderDayProductSummary();
-  if (entries.length === 0) {
-    list.innerHTML = '<p class="empty-note">Ще немає записів за цей день</p>';
-  } else {
-    entries.forEach((e, idx) => {
-      const row = document.createElement('div');
-      row.className = 'entry-row' + (e.deleted ? ' phantom' : '');
-      const remainingMs = e.deleted ? Math.max(0, PURGE_DELAY_MS - (Date.now() - (e.deletedAt || 0))) : 0;
-      const rateLabel = (e.items && e.items.length === 1)
-        ? e.items[0].rate.toFixed(2) + ' ₴/' + unitFor(e.items[0].code) + (e.order ? ' · Зам. №' + e.order : '')
-        : (e.order ? 'Зам. №' + e.order : '');
-      row.innerHTML =
-        '<div class="entry-info"><b>' + entryCodesLabel(e) + '</b><span> · ' + entryQtyLabel(e) + '</span><span class="entry-rate">' + rateLabel + '</span></div>' +
-        '<div class="entry-row-right">' +
-          (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
-          '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
-          (e.deleted
-            ? '<button class="entry-restore" data-idx="' + idx + '" title="Скасувати видалення">↺</button>'
-            : (entriesEditMode ? '<button class="entry-del" data-idx="' + idx + '">✕</button>' : '')) +
-          '</div>' +
-        '</div>' +
-        (e.deleted ? '<div class="phantom-timer-track"><div class="delete-line-left" data-remaining="' + remainingMs + '"></div><div class="delete-line-right" data-remaining="' + remainingMs + '"></div></div>' : '');
-      list.appendChild(row);
-    });
 
+  if (entries.length === 0) {
+    entryListExpanded = false;
+    list.innerHTML = '<p class="empty-note">Ще немає записів за цей день</p>';
+    document.getElementById('dayTotal').textContent = fmtMoney(dayTotal(activeDateKey));
+    return;
+  }
+
+  const shouldStack = entries.length > 3 && !entryListExpanded;
+
+  if (shouldStack) {
+    list.innerHTML = entryStackHtml(entries);
+    list.querySelector('.entry-stack').addEventListener('click', () => {
+      entryListExpanded = true;
+      renderEntryList();
+    });
+    document.getElementById('dayTotal').textContent = fmtMoney(dayTotal(activeDateKey));
+    return;
+  }
+
+  list.innerHTML =
+    (entries.length > 3 ? '<button type="button" class="entry-list-collapse">▲ Згорнути список</button>' : '') +
+    entries.map((e, idx) => entryRowHtml(e, idx, false)).join('');
+
+  const collapseBtn = list.querySelector('.entry-list-collapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      entryListExpanded = false;
+      renderEntryList();
+    });
+  }
+
+  {
     list.querySelectorAll('.entry-del').forEach(btn => {
       btn.addEventListener('click', (ev) => {
         const idx = parseInt(ev.currentTarget.getAttribute('data-idx'), 10);
@@ -1398,6 +1518,7 @@ function renderEntryList() {
 function openModal(y, m, d) {
   activeDateKey = dateKey(y, m, d);
   entriesEditMode = false;
+  entryListExpanded = false;
   updateEntriesEditButton();
   const status = getStatus(y, m, d);
   const dt = new Date(y, m, d);
@@ -1408,7 +1529,9 @@ function openModal(y, m, d) {
   document.getElementById('saveNote').textContent = '';
   document.getElementById('modalBox').classList.toggle('day-off', status !== 'work');
   document.getElementById('modalBox').classList.toggle('day-leave', status === 'work' && isLeaveDay(activeDateKey));
+  document.getElementById('modalBox').classList.toggle('day-sick', status === 'work' && isSickDay(activeDateKey));
   updateLeaveToggleButton(status);
+  updateSickToggleButton(status);
   document.getElementById('productAddForm').style.display = 'none';
   document.getElementById('productChoice').style.display = '';
   showAllProducts = false;
@@ -1425,7 +1548,7 @@ function openModal(y, m, d) {
   updatePreview();
   renderEntryList();
   document.getElementById('overlay').classList.add('open');
-  document.body.classList.add('day-modal-open');
+  lockBodyScroll('day-modal-open');
 }
 
 // Shows/labels the "вихідний за свій рахунок" toggle — only relevant on
@@ -1451,6 +1574,8 @@ document.getElementById('leaveToggleBtn').addEventListener('click', () => {
     const hasEntries = (earningsData[key] || []).length > 0;
     if (hasEntries && !confirm('У цей день вже є записи заробітку. Все одно позначити його вихідним за свій рахунок?')) return;
     leaveDays[key] = true;
+    // День не може бути одночасно "за свій рахунок" і "лікарняним".
+    if (isSickDay(key)) { delete sickDays[key]; saveSickDays(); }
   } else {
     delete leaveDays[key];
   }
@@ -1459,6 +1584,63 @@ document.getElementById('leaveToggleBtn').addEventListener('click', () => {
   const [ey, em, ed] = key.split('-').map(Number);
   const status = getStatus(ey, em - 1, ed);
   document.getElementById('modalBox').classList.toggle('day-leave', status === 'work' && isLeaveDay(key));
+  document.getElementById('modalBox').classList.toggle('day-sick', status === 'work' && isSickDay(key));
+  updateLeaveToggleButton(status);
+  updateSickToggleButton(status);
+
+  renderCalendar();
+  renderToday();
+  renderStats();
+  renderGoal();
+  renderTodayEntries();
+});
+
+// Той самий принцип, що й "вихідний за свій рахунок" — не враховується в
+// заробіток/статистику. Формула компенсації поки невідома, тому сума —
+// просто вільне поле для ручного запису на майбутнє (не впливає на
+// жодні розрахунки, поки ти сам не скажеш, як саме її рахувати).
+function updateSickToggleButton(status) {
+  const btn = document.getElementById('sickToggleBtn');
+  if (!btn) return;
+  if (status !== 'work') {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.style.display = '';
+  const sick = isSickDay(activeDateKey);
+  btn.classList.toggle('active', sick);
+  btn.querySelector('.sick-toggle-label').textContent = sick
+    ? '✕ Скасувати «лікарняний»'
+    : 'Позначити лікарняним';
+
+  const amountRow = document.getElementById('sickAmountRow');
+  const amountInput = document.getElementById('sickAmountInput');
+  if (amountRow) amountRow.style.display = sick ? '' : 'none';
+  if (amountInput && document.activeElement !== amountInput) {
+    const amt = sickAmount(activeDateKey);
+    amountInput.value = amt !== null ? String(amt) : '';
+  }
+}
+
+document.getElementById('sickToggleBtn').addEventListener('click', () => {
+  const key = activeDateKey;
+  const turningOn = !isSickDay(key);
+  if (turningOn) {
+    const hasEntries = (earningsData[key] || []).length > 0;
+    if (hasEntries && !confirm('У цей день вже є записи заробітку. Все одно позначити його лікарняним?')) return;
+    sickDays[key] = null;
+    // День не може бути одночасно "лікарняним" і "за свій рахунок".
+    if (isLeaveDay(key)) { delete leaveDays[key]; saveLeaveDays(); }
+  } else {
+    delete sickDays[key];
+  }
+  saveSickDays();
+
+  const [ey, em, ed] = key.split('-').map(Number);
+  const status = getStatus(ey, em - 1, ed);
+  document.getElementById('modalBox').classList.toggle('day-sick', status === 'work' && isSickDay(key));
+  document.getElementById('modalBox').classList.toggle('day-leave', status === 'work' && isLeaveDay(key));
+  updateSickToggleButton(status);
   updateLeaveToggleButton(status);
 
   renderCalendar();
@@ -1468,9 +1650,18 @@ document.getElementById('leaveToggleBtn').addEventListener('click', () => {
   renderTodayEntries();
 });
 
+document.getElementById('sickAmountInput').addEventListener('change', (e) => {
+  const raw = e.target.value.replace(',', '.').trim();
+  const val = parseFloat(raw);
+  sickDays[activeDateKey] = (raw && !isNaN(val)) ? val : null;
+  saveSickDays();
+  renderGoal();
+});
+
 function closeModal() {
   document.getElementById('overlay').classList.remove('open');
-  document.body.classList.remove('day-modal-open');
+  unlockBodyScroll('day-modal-open');
+  entryListExpanded = false;
 }
 
 document.getElementById('modalClose').addEventListener('click', closeModal);
@@ -1539,6 +1730,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
   loadGoals();
   loadCustomProducts();
   loadLeaveDays();
+  loadSickDays();
 
   initGoalCardListeners();
   initCoreProductTiles();
@@ -1568,7 +1760,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
 // functions, never by reaching into script.js's internals directly.
 window.AppBridge = {
   getLocalBundle() {
-    return { earnings: earningsData, goals: goalsData, customProducts, leaveDays };
+    return { earnings: earningsData, goals: goalsData, customProducts, leaveDays, sickDays };
   },
   applyCloudBundle(bundle) {
     earningsData = (bundle && bundle.earnings) || {};
@@ -1576,10 +1768,12 @@ window.AppBridge = {
     goalsData = (bundle && bundle.goals) || {};
     customProducts = (bundle && bundle.customProducts) || [];
     leaveDays = (bundle && bundle.leaveDays) || {};
+    sickDays = (bundle && bundle.sickDays) || {};
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(earningsData)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(GOALS_KEY, JSON.stringify(goalsData)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(PRODUCTS_KEY, JSON.stringify(customProducts)); } catch (e) { /* ignore */ }
     try { localStorage.setItem(LEAVE_KEY, JSON.stringify(leaveDays)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SICK_KEY, JSON.stringify(sickDays)); } catch (e) { /* ignore */ }
     resumePendingPurges();
     renderToday();
     renderGoal();
@@ -1788,6 +1982,33 @@ function initCloudSyncUI() {
   if (processSelect) processSelect.addEventListener('change', saveProfileMeta);
 }
 
+
+// ---------- Body scroll lock ----------
+// overflow:hidden на body саме по собі НЕ блокує специфічну поведінку
+// iOS Safari/PWA: коли зʼявляється клавіатура, браузер сам прокручує
+// document, щоб підвести сфокусоване поле під клавіатуру — і робить це
+// незалежно від overflow:hidden, оскільки це не скрол від дотику
+// користувача, а вбудована поведінка браузера при фокусі. Єдиний
+// надійний спосіб — фізично зафіксувати body через position:fixed,
+// тоді йому просто нема куди "поїхати", а після закриття — повернути
+// збережену позицію скролу назад.
+let bodyScrollLockY = 0;
+function lockBodyScroll(className) {
+  bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
+  document.body.style.position = 'fixed';
+  document.body.style.top = '-' + bodyScrollLockY + 'px';
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.classList.add(className);
+}
+function unlockBodyScroll(className) {
+  document.body.classList.remove(className);
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  window.scrollTo(0, bodyScrollLockY);
+}
 
 // ---------- Bottom nav + full-screen windows ----------
 // Три вікна ("Профіль" / "Налаштування" / "Топ") — постійні DOM-вузли,

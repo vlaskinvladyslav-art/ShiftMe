@@ -137,6 +137,7 @@
     <div class="legend-item"><span class="legend-swatch off"></span><span>Вихідний</span></div>
     <div class="legend-item"><span class="legend-swatch money"></span><span>Заробіток</span></div>
     <div class="legend-item"><span class="legend-swatch leave"></span><span>За свій рахунок</span></div>
+    <div class="legend-item"><span class="legend-swatch sick"></span><span>Лікарняний</span></div>
   </div>
 
   <div class="dev-notice" id="devNotice">
@@ -211,6 +212,14 @@
     </div>
     <p class="modal-status" id="modalStatus"></p>
     <button class="leave-toggle-btn" id="leaveToggleBtn" type="button"></button>
+    <button class="sick-toggle-btn" id="sickToggleBtn" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 10c0-2.5 1-4 4-4h10c3 0 4 1.5 4 4v2c0 3.5-2 6-9 6s-9-2.5-9-6v-2z"></path>
+        <path d="M9 9.5c1 .6 1 1.9 0 2.5M15 9.5c-1 .6-1 1.9 0 2.5"></path>
+        <path d="M3 11l-1.5-.5M21 11l1.5-.5"></path>
+      </svg>
+      <span class="sick-toggle-label">Позначити лікарняним</span>
+    </button>
     <button class="entries-edit-btn" id="entriesEditBtn" type="button">✎ Редагувати записи</button>
 
     <div class="entry-list" id="entryList"></div>
@@ -222,6 +231,11 @@
 
     <p class="modal-off-note" id="modalOffNote">Вихідний день — запис заробітку недоступний.</p>
     <p class="modal-leave-note" id="modalLeaveNote">Вихідний за свій рахунок — заробіток за цей день не рахується в статистику й ціль.</p>
+    <p class="modal-sick-note" id="modalSickNote">Лікарняний — заробіток за цей день не рахується в статистику й ціль.</p>
+    <div id="sickAmountRow">
+      <label for="sickAmountInput">Сума лікарняних, грн (поки вручну — заповниш, коли дізнаєшся розрахунок)</label>
+      <input type="text" inputmode="decimal" id="sickAmountInput" placeholder="напр. 850">
+    </div>
 
     <p class="form-label">Виріб</p>
     <div class="segmented-toggle entry-mode-toggle" id="entryModeToggle">
@@ -459,7 +473,7 @@
 </nav>
 
 <script src="script.js"></script>
-<script type="module" src="firestore-sync.js"></script>
+<script type="module" src="firebase-sync.js"></script>
 
 </body>
 </html>

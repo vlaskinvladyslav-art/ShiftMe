@@ -220,6 +220,7 @@ function mergeBundles(cloud, local) {
     goals: mergeKeyedObject(cloud.goals, local.goals),
     customProducts: mergeCustomProducts(cloud.customProducts, local.customProducts),
     leaveDays: mergeKeyedObject(cloud.leaveDays, local.leaveDays),
+    sickDays: mergeKeyedObject(cloud.sickDays, local.sickDays),
   };
 }
 
@@ -273,6 +274,7 @@ async function readCloudBundle(uid) {
       goals: prior.goals || {},
       customProducts: prior.customProducts || [],
       leaveDays: prior.leaveDays || {},
+      sickDays: prior.sickDays || {},
     },
     existingIds,
     hasAnyData: existingIds.size > 0 || profileSnap.exists(),
@@ -307,6 +309,7 @@ async function writeCloudBundle(uid, bundle) {
       goals: bundle.goals || {},
       customProducts: bundle.customProducts || [],
       leaveDays: bundle.leaveDays || {},
+      sickDays: bundle.sickDays || {},
     },
   });
 

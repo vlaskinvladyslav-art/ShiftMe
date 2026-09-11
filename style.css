@@ -364,6 +364,11 @@ h1 span { color: var(--work); }
   color: #c9a8ff;
   border: 1px dashed rgba(180, 140, 255, 0.5);
 }
+.day-cell.sick {
+  background: rgba(110, 168, 255, 0.1);
+  color: #6ea8ff;
+  border: 1px dashed rgba(110, 168, 255, 0.5);
+}
 .day-cell.empty { background: transparent; cursor: default; }
 .day-cell.today {
   outline: 2px solid var(--today-ring);
@@ -384,12 +389,6 @@ h1 span { color: var(--work); }
   margin-top: 1px;
   letter-spacing: -0.02em;
 }
-.day-cell .leave-mark {
-  width: 10px;
-  height: 10px;
-  object-fit: contain;
-  margin-top: 1px;
-}
 
 .legend {
   display: flex;
@@ -405,6 +404,7 @@ h1 span { color: var(--work); }
 .legend-swatch.off { background: var(--off); }
 .legend-swatch.money { background: var(--money); }
 .legend-swatch.leave { background: #c9a8ff; }
+.legend-swatch.sick { background: #6ea8ff; }
 
 .month-total {
   margin-top: 14px;
@@ -669,8 +669,6 @@ h1 span { color: var(--work); }
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 220px;
-  overflow-y: auto;
 }
 .today-entry-row {
   display: flex;
@@ -685,6 +683,8 @@ h1 span { color: var(--work); }
   color: var(--muted);
   cursor: pointer;
   transition: transform 0.12s ease, background 0.15s ease;
+  animation: entryRowIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.045s);
 }
 .today-entry-row:active { transform: scale(0.98); background: var(--line); }
 .today-entry-code {
@@ -1033,17 +1033,7 @@ h1 span { color: var(--work); }
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding: 14px 4px 6px;
-}
-.goal-upcoming::before {
-  content: '';
-  position: absolute;
-  top: 19px;
-  left: 10px;
-  right: 10px;
-  height: 1px;
-  background: linear-gradient(90deg, var(--line), transparent 92%);
-  z-index: 0;
+  padding: 16px 8px 16px;
 }
 .goal-chip {
   position: relative;
@@ -1060,47 +1050,27 @@ h1 span { color: var(--work); }
   animation: goalChipIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1) forwards;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
-.goal-chip::before {
-  /* Timeline dot marking this day's position on the connecting line */
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  width: 5px;
-  height: 5px;
-  margin-left: -2.5px;
-  border-radius: 50%;
-  background: var(--line);
-}
 .goal-chip.chip-today {
   border-color: var(--money);
   background: rgba(244, 201, 93, 0.08);
+  animation: goalChipPulse 2.4s ease-in-out 0.5s infinite;
 }
-.goal-chip.chip-today::before { background: var(--money); }
-.goal-chip.chip-done::before { background: var(--off); }
 
-/* The glow itself never changes shape or blur — only its opacity animates,
-   which is smooth on every device. Animating box-shadow's blur radius
-   directly (the old approach) made browsers pop between "no shadow" and
-   "full shadow" without a clean tween, which read as a square flash. */
-.goal-chip.chip-today::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 17px;
-  box-shadow: 0 0 16px 2px rgba(244, 201, 93, 0.45);
-  opacity: 0;
-  animation: goalChipGlow 2.4s ease-in-out 0.5s infinite;
-  pointer-events: none;
-  z-index: -1;
+/* Раніше світіння виходило за межі самої картки (inset:-3px + розмитий
+   box-shadow) — і його обрізало сусідньою карткою впритул та/або
+   overflow-контейнером (overflow-x:auto на батьківському елементі за
+   специфікацією CSS автоматично вимикає overflow-y:visible теж,
+   обійти це неможливо самим лише overflow-y). Тепер пульсація — це
+   ВНУТРІШНЯ obводка (inset-тінь без розмиття, рівно по контуру самої
+   картки), яка фізично не може вийти за її межі, тому обрізати
+   нічому — жодних "квадратних" артефактів. */
+@keyframes goalChipPulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px rgba(244, 201, 93, 0.2); }
+  50% { box-shadow: inset 0 0 0 1.5px rgba(244, 201, 93, 0.95); }
 }
 @keyframes goalChipIn {
   from { opacity: 0; transform: translateY(6px) scale(0.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
-}
-@keyframes goalChipGlow {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 1; }
 }
 .goal-chip.chip-off { border-style: dashed; opacity: 0.7; box-shadow: none; }
 .goal-chip.chip-off.chip-today { opacity: 1; }
@@ -1110,6 +1080,12 @@ h1 span { color: var(--work); }
   background: rgba(180, 140, 255, 0.08);
 }
 .goal-chip.chip-leave .chip-val { color: #c9a8ff; font-weight: 500; font-style: italic; }
+.goal-chip.chip-sick {
+  border-style: dashed;
+  border-color: rgba(110, 168, 255, 0.5);
+  background: rgba(110, 168, 255, 0.08);
+}
+.goal-chip.chip-sick .chip-val { color: #6ea8ff; font-weight: 500; font-style: italic; }
 .goal-chip.chip-done { border-color: var(--off); background: rgba(67, 198, 172, 0.08); }
 .goal-chip .chip-day {
   font-size: 9.5px;
@@ -1533,9 +1509,13 @@ h1 span { color: var(--work); }
   z-index: 70;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.25s ease, visibility 0.25s ease;
+  pointer-events: none;
+  /* Та сама крива, що й у вікон профілю/налаштувань (.app-window) — щоб
+     відкриття модалки дня відчувалось так само гладко, а не окремим,
+     трохи "жорсткішим" рухом на простому ease. */
+  transition: opacity 0.3s cubic-bezier(0.22, 0.9, 0.32, 1), visibility 0.4s ease;
 }
-.overlay.open { opacity: 1; visibility: visible; }
+.overlay.open { opacity: 1; visibility: visible; pointer-events: auto; }
 .modal {
   width: 100%;
   max-width: 460px;
@@ -1546,10 +1526,10 @@ h1 span { color: var(--work); }
   padding: 18px 18px 26px;
   max-height: 85vh;
   overflow-y: auto;
-  transform: translateY(24px);
-  transition: transform 0.32s cubic-bezier(0.22, 0.9, 0.32, 1);
+  transform: translateY(28px) scale(0.98);
+  transition: transform 0.4s cubic-bezier(0.22, 0.9, 0.32, 1);
 }
-.overlay.open .modal { transform: translateY(0); }
+.overlay.open .modal { transform: translateY(0) scale(1); }
 .modal-handle {
   width: 36px; height: 4px;
   background: var(--line);
@@ -1593,7 +1573,98 @@ h1 span { color: var(--work); }
   padding: 10px 12px;
   margin-bottom: 7px;
   font-size: 13px;
+  /* Каскадна поява при розгортанні списку — spring-крива з легким
+     "перельотом" (overshoot) дає той самий пружний, живий відчуття, що
+     й у появи карток 14-денного графіка, лише трохи виразніше. Кожен
+     рядок сам виставляє собі --i (порядковий індекс) інлайн-стилем —
+     звідси затримка каскадом. */
+  animation: entryRowIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation-delay: calc(var(--i, 0) * 0.045s);
 }
+@keyframes entryRowIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- Stacked Cards ---------- */
+/* Коли записів більше 3 — замість довгого списку/скролу показуємо
+   стопку: "обличчя" (найновіший запис) + два тонкі шари-натяки позаду,
+   трохи зменшені й зсунуті вниз, ніби картки в колоді. Клік/тап будь-де
+   по стопці розгортає повний список тією ж пружною анімацією, що й
+   поява рядків вище. */
+.entry-stack {
+  position: relative;
+  cursor: pointer;
+  padding-bottom: 10px;
+  margin-bottom: 7px;
+  animation: entryRowIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.entry-stack-layer {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 0;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.entry-stack-layer[data-depth="1"] { transform: translateY(6px) scale(0.97); opacity: 0.75; z-index: 1; }
+.entry-stack-layer[data-depth="2"] {
+  left: 8%; right: 8%;
+  transform: translateY(11px) scale(0.94);
+  opacity: 0.45;
+  z-index: 0;
+}
+.entry-stack-front {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.15s ease;
+}
+.entry-stack-front .entry-row {
+  margin-bottom: 0;
+  pointer-events: none;
+  animation: none; /* стопка сама анімується як єдине ціле — власна затримка через успадкований --i (індекс останнього запису) тут не потрібна */
+}
+.entry-stack-front .today-entry-row {
+  pointer-events: none;
+  animation: none;
+}
+.entry-stack:active .entry-stack-front { transform: scale(0.97); }
+.entry-stack-badge {
+  position: absolute;
+  top: -7px;
+  right: 4px;
+  background: var(--money);
+  color: #1b1500;
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  z-index: 3;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.entry-list-collapse,
+.today-entries-list .entry-list-collapse {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  padding: 2px 0 8px;
+  text-align: center;
+}
+.entry-list-collapse:active { color: var(--text); }
+
 .entry-info b { font-family: 'JetBrains Mono', monospace; color: var(--text); }
 .entry-info .entry-rate { color: var(--muted); display: block; font-size: 11px; margin-top: 2px; }
 .entry-amount { color: var(--money); font-weight: 700; font-family: 'Space Grotesk', sans-serif; margin-right: 10px; }
@@ -1730,8 +1801,12 @@ h1 span { color: var(--work); }
 .product-btn.active .rate { color: var(--money); }
 
 /* R&D — не звичайний виріб, а фіксований виняток (одноденна підмога на
-   іншому процесі), тому стоїть окремим рядком над рештою тайлів і має
-   інший акцентний колір, щоб його не сплутати зі звичайним виробом. */
+   іншому процесі), тому стоїть окремим рядком над рештою тайлів. Колір
+   навмисно приглушений (не чистий var(--work)) — це не годинник "весь
+   день на цьому процесі", а рідкісний виняток, тож не повинен кричати
+   яскравіше за звичайні тайли. Поки не вибрано — компактний і по
+   центру; при виборі (клас .active, той самий, що й у звичайних
+   тайлів) плавно розширюється на всю ширину рядка. */
 .product-btn.rnd-tile {
   grid-column: 1 / -1;
   display: flex;
@@ -1739,16 +1814,20 @@ h1 span { color: var(--work); }
   justify-content: center;
   gap: 10px;
   padding: 10px 8px;
-  border-color: rgba(255,140,66,0.5);
-  background: rgba(255,140,66,0.08);
+  border-color: rgba(255, 140, 66, 0.25);
+  background: rgba(255, 140, 66, 0.05);
+  width: 48%;
+  margin: 0 auto;
+  transition: width 0.35s cubic-bezier(0.22, 0.9, 0.32, 1), border-color 0.2s ease, background 0.2s ease;
 }
 .product-btn.rnd-tile .code { font-size: 14px; }
-.product-btn.rnd-tile .rate { color: var(--work); }
+.product-btn.rnd-tile .rate { color: #c9915f; }
 .product-btn.rnd-tile.active {
-  border-color: var(--work);
-  background: rgba(255,140,66,0.16);
+  width: 100%;
+  border-color: rgba(255, 140, 66, 0.4);
+  background: rgba(255, 140, 66, 0.1);
 }
-.product-btn.rnd-tile.active .rate { color: var(--work); }
+.product-btn.rnd-tile.active .rate { color: #c9915f; }
 
 .product-del {
   position: absolute;
@@ -1824,13 +1903,6 @@ h1 span { color: var(--work); }
   text-align: center;
   margin-bottom: 4px;
 }
-.leave-note-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  vertical-align: middle;
-  margin-right: 4px;
-}
 .modal.day-off .form-label,
 .modal.day-off .product-choice,
 .modal.day-off .product-add-form,
@@ -1842,9 +1914,78 @@ h1 span { color: var(--work); }
 .modal.day-leave .product-add-form,
 .modal.day-leave .qty-row,
 .modal.day-leave .preview-line,
-.modal.day-leave .submit-btn { display: none; }
+.modal.day-leave .submit-btn,
+.modal.day-sick .form-label,
+.modal.day-sick .product-choice,
+.modal.day-sick .product-add-form,
+.modal.day-sick .qty-row,
+.modal.day-sick .preview-line,
+.modal.day-sick .submit-btn { display: none; }
 .modal.day-off .modal-off-note { display: block; }
 .modal.day-leave .modal-leave-note { display: block; }
+.modal.day-sick .modal-sick-note { display: block; }
+
+.modal-sick-note {
+  display: none;
+  background: rgba(110, 168, 255, 0.12);
+  color: #6ea8ff;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+#sickAmountRow {
+  display: none;
+  margin-bottom: 14px;
+}
+#sickAmountRow label {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-align: center;
+}
+#sickAmountInput {
+  width: 100%;
+  text-align: center;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 168, 255, 0.35);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+}
+
+.sick-toggle-btn {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.sick-toggle-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.sick-toggle-btn:active { background: var(--line); }
+.sick-toggle-btn.active {
+  background: rgba(110, 168, 255, 0.12);
+  border-color: #6ea8ff;
+  color: #6ea8ff;
+}
+.modal.day-off .sick-toggle-btn { display: none; }
 
 .leave-toggle-btn {
   display: block;

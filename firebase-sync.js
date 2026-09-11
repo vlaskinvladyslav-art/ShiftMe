@@ -253,6 +253,7 @@ function mergeBundles(cloud, local) {
     goals: mergeKeyedObject(cloud.goals, local.goals),
     customProducts: mergeCustomProducts(cloud.customProducts, local.customProducts),
     leaveDays: mergeKeyedObject(cloud.leaveDays, local.leaveDays),
+    sickDays: mergeKeyedObject(cloud.sickDays, local.sickDays),
   };
 }
 
