@@ -119,6 +119,23 @@ let dataReady = false;
 // рахується по годинах, тому несумісний з рештою (взаємовиключний вибір).
 let selectedProducts = new Set([CORE_PRODUCTS[0].code]);
 let activeDateKey = null; // date currently open in the modal
+// Мінімалістична iOS-подібна іконка "відмінити" для кнопки відновлення
+// фантомного запису — замість символу ↺, який по-різному й не завжди
+// гарно рендериться шрифтами різних платформ.
+const RESTORE_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+// Позначає, який саме запис щойно додано (дата+індекс), щоб лише ЙОГО
+// рядок отримав анімацію появи при наступному renderEntryList()/
+// renderTodayEntries() — решта списку не повинна "підстрибувати" знову
+// щоразу, коли перемальовується (видалення/відновлення сусіднього
+// запису тощо).
+let justAddedEntry = null; // { key, idx } | null
+// Позначає, що список щойно розгорнули зі стопки (клік по entry-stack) —
+// саме тоді, і лише тоді, всі рядки повинні одноразово програти каскадну
+// появу (entryRowIn зі stagger-затримкою). Одноразовий прапорець:
+// зчитується в entryRowHtml/todayEntryRowHtml і одразу скидається після
+// рендеру, щоб решта перемальовок (видалення/відновлення тощо) рядки
+// не "підстрибували" знову.
+let listRevealPending = false;
 let entriesEditMode = false; // чи показані кнопки видалення в списку записів дня
 
 // ---------- Products: 2 built-in + any the person adds themselves ----------
@@ -366,17 +383,61 @@ function scheduleEntryPurge(key, entry, delay) {
     if (!entry.deleted) return; // restored in the meantime — nothing to do
     const arr = earningsData[key];
     if (!arr) return;
+
+    const finishPurge = () => {
+      const i = arr.indexOf(entry);
+      if (i !== -1) arr.splice(i, 1);
+      if (arr.length === 0) delete earningsData[key];
+      saveEarnings();
+      if (activeDateKey === key) renderEntryList();
+      renderCalendar();
+      renderToday();
+      renderStats();
+      renderGoal();
+      renderTodayEntries();
+    };
+
+    // Якщо запис прямо зараз показаний окремим видимим рядком (а не
+    // згорнутий у стопку — "обличчя" стопки не має зникати разом із
+    // даними) — спершу даємо йому плавно згаснути й "скластися" по
+    // висоті, і лише тоді реально видаляємо з даних і перемальовуємо
+    // списки. Той самий прийом форсованого reflow, що і в openModal():
+    // фіксуємо стартову висоту в px (з auto анімувати не можна), тоді в
+    // наступному кадрі стискаємо до нуля.
     const i = arr.indexOf(entry);
-    if (i !== -1) arr.splice(i, 1);
-    if (arr.length === 0) delete earningsData[key];
-    saveEarnings();
-    if (activeDateKey === key) renderEntryList();
-    renderCalendar();
-    renderToday();
-    renderStats();
-    renderGoal();
-    renderTodayEntries();
+    const selector = '.entry-row[data-idx="' + i + '"], .today-entry-row[data-idx="' + i + '"]';
+    const rows = Array.from(document.querySelectorAll(selector)).filter(el => !el.closest('.entry-stack-front'));
+
+    if (rows.length === 0) { finishPurge(); return; }
+
+    rows.forEach(el => {
+      el.style.maxHeight = el.offsetHeight + 'px';
+      el.style.overflow = 'hidden';
+      void el.offsetHeight; // форсований reflow — фіксує стартову висоту перед анімацією
+      requestAnimationFrame(() => {
+        el.classList.add('row-removing');
+        el.style.maxHeight = '0px';
+      });
+    });
+    setTimeout(finishPurge, 340);
   }, delay != null ? delay : PURGE_DELAY_MS);
+}
+
+// Запускає анімацію "лінії, що згорає" для щойно відрендерених
+// фантомних записів у переданому контейнері: фіксуємо стартовий стан
+// (scaleX(1), без transition) через форсований reflow, тоді вмикаємо
+// transition і стягуємо до scaleX(0) рівно за час, що лишився до
+// остаточного видалення — так смужка завжди "згорає" синхронно з
+// реальним таймером, навіть якщо застосунок відкрили посеред відліку.
+function playBurnLines(container) {
+  container.querySelectorAll('.phantom-burn-fill').forEach(fill => {
+    const remaining = parseInt(fill.getAttribute('data-remaining'), 10) || 0;
+    fill.style.transitionDuration = '0s';
+    fill.style.transform = 'scaleX(1)';
+    void fill.offsetWidth; // форсований reflow — фіксує стартовий стан
+    fill.style.transitionDuration = remaining + 'ms';
+    requestAnimationFrame(() => { fill.style.transform = 'scaleX(0)'; });
+  });
 }
 
 // Called once at startup: entries that were mid-countdown when the app
@@ -503,14 +564,21 @@ function renderToday() {
 let todayEntriesExpanded = false; // та сама stacking-логіка, що й у entry-list модалки
 
 function todayEntryRowHtml(e, idx, preview) {
+  const todayKey = dateKey(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
+  const isNew = !preview && justAddedEntry && justAddedEntry.key === todayKey && justAddedEntry.idx === idx;
+  const isReveal = !preview && !isNew && listRevealPending;
+  const remainingMs = e.deleted ? Math.max(0, PURGE_DELAY_MS - (Date.now() - (e.deletedAt || 0))) : 0;
   return (
-    '<div class="today-entry-row' + (e.deleted ? ' phantom' : '') + '" data-idx="' + idx + '" style="--i:' + idx + '">' +
-      '<span class="today-entry-code">' + entryCodesLabel(e) + '</span>' +
-      '<span>' + entryQtyLabel(e) + '</span>' +
-      (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
-      (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
-      '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
-      (!preview && e.deleted ? '<button class="today-entry-restore" data-idx="' + idx + '" title="Відновити">↺</button>' : '') +
+    '<div class="today-entry-row' + (e.deleted ? ' phantom' : '') + (isNew ? ' row-new' : (isReveal ? ' row-reveal' : '')) + '" data-idx="' + idx + '" style="--i:' + idx + '">' +
+      '<div class="today-entry-row-content">' +
+        '<span class="today-entry-code">' + entryCodesLabel(e) + '</span>' +
+        '<span>' + entryQtyLabel(e) + '</span>' +
+        (e.order ? '<span class="today-entry-order">№' + e.order + '</span>' : '') +
+        (fmtTime(e.time) ? '<span class="today-entry-time">' + fmtTime(e.time) + '</span>' : '') +
+        '<span class="today-entry-amount">' + fmtMoney(e.amount) + '</span>' +
+        (!preview && e.deleted ? '<button class="today-entry-restore" data-idx="' + idx + '">' + RESTORE_ICON_SVG + 'Відновити</button>' : '') +
+      '</div>' +
+      (!preview && e.deleted ? '<div class="phantom-burn-track"><div class="phantom-burn-fill" data-remaining="' + remainingMs + '"></div></div>' : '') +
     '</div>'
   );
 }
@@ -549,6 +617,7 @@ function renderTodayEntries() {
     wrap.innerHTML = todayEntryStackHtml(withIdx);
     wrap.querySelector('.entry-stack').addEventListener('click', () => {
       todayEntriesExpanded = true;
+      listRevealPending = true;
       renderTodayEntries();
     });
     return;
@@ -557,6 +626,7 @@ function renderTodayEntries() {
   wrap.innerHTML =
     (withIdx.length > 3 ? '<button type="button" class="entry-list-collapse">▲ Згорнути список</button>' : '') +
     withIdx.map(({ e, idx }) => todayEntryRowHtml(e, idx, false)).join('');
+  listRevealPending = false;
 
   const collapseBtn = wrap.querySelector('.entry-list-collapse');
   if (collapseBtn) {
@@ -565,6 +635,8 @@ function renderTodayEntries() {
       renderTodayEntries();
     });
   }
+
+  playBurnLines(wrap);
 
   wrap.querySelectorAll('.today-entry-row').forEach(row => {
     row.addEventListener('click', (ev) => {
@@ -592,26 +664,27 @@ function renderTodayEntries() {
   });
 }
 
-function renderCalendar() {
-  document.getElementById('calTitle').textContent = monthNamesNom[viewMonth] + ' ' + viewYear;
-  const grid = document.getElementById('calGrid');
-  grid.innerHTML = '';
-
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+// Виносимо саму побудову клітинок в окрему функцію, що приймає
+// довільний контейнер — потрібно і для звичайного renderCalendar()
+// (перемальовує #calGrid на місці), і для слайд-переходу між місяцями
+// нижче (будує ДРУГУ, тимчасову сітку, поки перша ще на екрані).
+function buildCalendarGridCells(year, month, targetEl) {
+  targetEl.innerHTML = '';
+  const firstDay = new Date(year, month, 1).getDay();
   const leadingEmpty = (firstDay + 6) % 7;
-  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   for (let i = 0; i < leadingEmpty; i++) {
     const e = document.createElement('div');
     e.className = 'day-cell empty';
-    grid.appendChild(e);
+    targetEl.appendChild(e);
   }
 
   let monthSum = 0;
 
   for (let day = 1; day <= daysInMonth; day++) {
-    const s = getStatus(viewYear, viewMonth, day);
-    const key = dateKey(viewYear, viewMonth, day);
+    const s = getStatus(year, month, day);
+    const key = dateKey(year, month, day);
     const total = dayTotal(key);
     const leave = s === 'work' && isLeaveDay(key);
     const sick = s === 'work' && isSickDay(key);
@@ -620,7 +693,7 @@ function renderCalendar() {
     const cell = document.createElement('button');
     cell.type = 'button';
     cell.className = 'day-cell ' + s + (leave ? ' leave' : '') + (sick ? ' sick' : '');
-    const isToday = viewYear === getEffectiveNow().getFullYear() && viewMonth === getEffectiveNow().getMonth() && day === getEffectiveNow().getDate();
+    const isToday = year === getEffectiveNow().getFullYear() && month === getEffectiveNow().getMonth() && day === getEffectiveNow().getDate();
     if (isToday) cell.classList.add('today');
 
     let inner = day;
@@ -632,9 +705,68 @@ function renderCalendar() {
       inner += '<span class="dot"></span>';
     }
     cell.innerHTML = inner;
-    cell.addEventListener('click', () => openModal(viewYear, viewMonth, day));
-    grid.appendChild(cell);
+    cell.addEventListener('click', () => openModal(year, month, day));
+    targetEl.appendChild(cell);
   }
+
+  return monthSum;
+}
+
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = monthNamesNom[viewMonth] + ' ' + viewYear;
+  const grid = document.getElementById('calGrid');
+  const monthSum = buildCalendarGridCells(viewYear, viewMonth, grid);
+  animateNumber(document.getElementById('monthTotal'), monthSum, fmtMoney);
+}
+
+// ---------- Гортання місяців (Horizontal paging) ----------
+// Замість миттєвої заміни сітки — старий місяць виїжджає в один бік
+// екрана, новий одночасно наїжджає з протилежного, як типовий свайп
+// сторінок. direction: 1 = вперед (наступний місяць), -1 = назад.
+let calSlideInProgress = false;
+function slideCalendarMonth(direction) {
+  if (calSlideInProgress) return; // не даємо запустити другий перехід, поки перший не доіграв
+  calSlideInProgress = true;
+
+  viewMonth += direction;
+  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
+  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
+
+  document.getElementById('calTitle').textContent = monthNamesNom[viewMonth] + ' ' + viewYear;
+
+  const viewport = document.getElementById('calGridViewport');
+  const oldGrid = document.getElementById('calGrid');
+
+  const newGrid = document.createElement('div');
+  newGrid.className = 'cal-grid';
+  const monthSum = buildCalendarGridCells(viewYear, viewMonth, newGrid);
+
+  // Різні місяці мають різну кількість рядків (5 чи 6) — фіксуємо
+  // поточну висоту viewport перед переходом, інакше вона стрибнула б
+  // миттєво в момент підміни замість плавно підлаштуватись під нову.
+  viewport.style.height = viewport.offsetHeight + 'px';
+
+  newGrid.classList.add('cal-grid-sliding');
+  newGrid.style.transform = 'translateX(' + (direction > 0 ? '100%' : '-100%') + ')';
+  oldGrid.classList.add('cal-grid-sliding');
+  oldGrid.style.transform = 'translateX(0)';
+  viewport.appendChild(newGrid);
+
+  const targetHeight = Math.max(oldGrid.offsetHeight, newGrid.offsetHeight);
+  requestAnimationFrame(() => {
+    viewport.style.height = targetHeight + 'px';
+    oldGrid.style.transform = 'translateX(' + (direction > 0 ? '-100%' : '100%') + ')';
+    newGrid.style.transform = 'translateX(0)';
+  });
+
+  setTimeout(() => {
+    oldGrid.remove();
+    newGrid.classList.remove('cal-grid-sliding');
+    newGrid.style.transform = '';
+    newGrid.id = 'calGrid';
+    viewport.style.height = '';
+    calSlideInProgress = false;
+  }, 380);
 
   animateNumber(document.getElementById('monthTotal'), monthSum, fmtMoney);
 }
@@ -672,6 +804,22 @@ function computeProductTotals() {
     });
   }
   return totals;
+}
+
+// Динаміка виробництва одного виробу по днях — лише дні, коли по ньому
+// реально щось зроблено (пропуски між ними — нормальна річ, виробів
+// роблять не щодня), відсортовані по даті, останні maxPoints точок.
+function computeProductDailySeries(code, maxPoints) {
+  const points = [];
+  Object.keys(earningsData).sort().forEach(key => {
+    let qty = 0;
+    (earningsData[key] || []).forEach(e => {
+      if (e.deleted) return;
+      (e.items || []).forEach(it => { if (it.code === code) qty += it.qty; });
+    });
+    if (qty > 0) points.push({ key, qty });
+  });
+  return points.slice(-maxPoints);
 }
 
 function last14Days() {
@@ -820,6 +968,59 @@ function setupChartObserver() {
   chartObserver.observe(card);
 }
 
+// Компактний лінійний графік динаміки виробництва одного виробу — менший
+// і простіший за основний графік зарплати: без пунктирної лінії
+// середнього, лише сама крива + крапки з датами.
+function productMiniChartSvg(points) {
+  const w = 280, h = 60, padX = 8, padY = 10;
+  const maxVal = Math.max.apply(null, points.map(p => p.qty).concat([1])) * 1.15;
+  const stepX = points.length > 1 ? (w - padX * 2) / (points.length - 1) : 0;
+  const xAt = (i) => points.length > 1 ? padX + i * stepX : w / 2;
+  const yAt = (v) => padY + (h - padY * 2) - (v / maxVal) * (h - padY * 2);
+
+  const linePts = points.map((p, i) => xAt(i) + ',' + yAt(p.qty).toFixed(1)).join(' ');
+  let dots = '';
+  points.forEach((p, i) => {
+    const x = xAt(i), y = yAt(p.qty);
+    const dt = new Date(p.key + 'T00:00:00');
+    const label = dt.getDate() + ' ' + monthNames[dt.getMonth()].slice(0, 3) + ' · ' + p.qty + ' шт';
+    dots += '<circle class="mini-chart-dot" data-label="' + label + '" cx="' + x + '" cy="' + y.toFixed(1) + '" r="3.2" fill="var(--money)"></circle>';
+  });
+
+  return (
+    '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" xmlns="http://www.w3.org/2000/svg" class="mini-chart-svg">' +
+      (points.length > 1
+        ? '<polyline points="' + linePts + '" fill="none" stroke="var(--money)" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></polyline>'
+        : '') +
+      dots +
+    '</svg>'
+  );
+}
+
+// Показує невелику підказку з датою й кількістю біля натиснутої крапки —
+// той самий тап-щоб-побачити підхід, що зручний на телефоні (наведення
+// мишкою тут не працює). Повторний тап по тій самій крапці ховає її.
+function showMiniChartTooltip(dot) {
+  const chartWrap = dot.closest('.mini-chart-wrap');
+  if (!chartWrap) return;
+  const label = dot.getAttribute('data-label');
+  const existing = chartWrap.querySelector('.mini-chart-tooltip');
+  const wasSameDot = existing && existing.dataset.for === label;
+  if (existing) existing.remove();
+  if (wasSameDot) return;
+
+  const wrapRect = chartWrap.getBoundingClientRect();
+  const dotRect = dot.getBoundingClientRect();
+  const tip = document.createElement('div');
+  tip.className = 'mini-chart-tooltip';
+  tip.dataset.for = label;
+  tip.textContent = label;
+  tip.style.left = (dotRect.left - wrapRect.left + dotRect.width / 2) + 'px';
+  tip.style.top = (dotRect.top - wrapRect.top) + 'px';
+  chartWrap.appendChild(tip);
+  setTimeout(() => { if (tip.parentNode) tip.remove(); }, 2500);
+}
+
 function productStatRowHtml(t) {
   const pct = t.pct;
   return (
@@ -833,6 +1034,43 @@ function productStatRowHtml(t) {
     '</div>'
   );
 }
+
+// Об'єднує (згори вниз) прихований міні-графік динаміки й сам рядок
+// статистики в один візуальний блок — графік розкривається шторкою
+// РІВНО над своїм рядком, а не десь окремо в списку.
+function productStatBlockHtml(t, isChartsOpen) {
+  const series = computeProductDailySeries(t.code, 14);
+  let chartHtml = '';
+  if (series.length >= 2) {
+    const last = series[series.length - 1];
+    const prev = series[series.length - 2];
+    let diffHtml = '';
+    if (prev.qty > 0) {
+      const pct = Math.round(((last.qty - prev.qty) / prev.qty) * 100);
+      diffHtml = '<span class="mini-chart-diff ' + (pct >= 0 ? 'up' : 'down') + '">' + (pct > 0 ? '▲ +' : (pct < 0 ? '▼ ' : '· ')) + pct + '%</span>';
+    }
+    chartHtml =
+      '<div class="mini-chart-card">' +
+        '<div class="mini-chart-head"><span>' + t.code + ' · динаміка, шт/день</span>' + diffHtml + '</div>' +
+        '<div class="mini-chart-wrap">' + productMiniChartSvg(series) + '</div>' +
+      '</div>';
+  } else {
+    chartHtml = '<p class="mini-chart-empty">Замало даних для графіка динаміки ' + t.code + '</p>';
+  }
+
+  return (
+    '<div class="product-stat-block">' +
+      '<div class="collapsible product-mini-chart-collapse' + (isChartsOpen ? '' : ' is-collapsed') + '">' +
+        '<div class="collapsible-inner">' + chartHtml + '</div>' +
+      '</div>' +
+      productStatRowHtml(t) +
+    '</div>'
+  );
+}
+
+// Чи розгорнута шторка з міні-графіками — спільна для всіх виробів,
+// перемикається одним натисканням на заголовок картки.
+let productStatsChartsOpen = false;
 
 function renderProductStats() {
   const totals = computeProductTotals();
@@ -859,13 +1097,39 @@ function renderProductStats() {
   const visible = statsShowAllProducts ? core.concat(extraUsed) : core;
   const hiddenCount = statsShowAllProducts ? 0 : extraUsed.length;
 
-  wrap.innerHTML = visible.map(productStatRowHtml).join('') +
+  wrap.innerHTML = visible.map(t => productStatBlockHtml(t, productStatsChartsOpen)).join('') +
     (hiddenCount > 0 ? '<button type="button" class="product-stats-toggle" id="productStatsToggle">Показати ще ' + hiddenCount + '</button>' : '');
 
   const toggleBtn = document.getElementById('productStatsToggle');
   if (toggleBtn) {
     toggleBtn.addEventListener('click', () => { statsShowAllProducts = true; renderProductStats(); });
   }
+
+  wrap.querySelectorAll('.mini-chart-dot').forEach(dot => {
+    dot.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      showMiniChartTooltip(dot);
+    });
+  });
+}
+
+// Заголовок-акордеон "По виробах" — один клік розкриває/згортає ВСІ
+// міні-графіки одразу (кожен своєю плавною шторкою, .collapsible вже
+// керує анімацією). Слухач вішається один раз при старті — сам список
+// графіків перебудовується довільну кількість разів, але клас .open на
+// заголовку й .is-collapsed на графіках синхронізуємо через єдину
+// productStatsChartsOpen.
+function initProductStatsAccordion() {
+  const head = document.getElementById('productStatsHead');
+  if (!head) return;
+  head.addEventListener('click', () => {
+    productStatsChartsOpen = !productStatsChartsOpen;
+    head.classList.toggle('open', productStatsChartsOpen);
+    head.setAttribute('aria-expanded', String(productStatsChartsOpen));
+    document.querySelectorAll('.product-mini-chart-collapse').forEach(el => {
+      el.classList.toggle('is-collapsed', !productStatsChartsOpen);
+    });
+  });
 }
 
 function renderStats() {
@@ -1385,22 +1649,26 @@ let entryListExpanded = false; // розгорнутий список у мод�
 // як "обличчя" згорнутої стопки (preview: без кнопок дій, щоб дотик по
 // стопці однозначно розгортав її, а не випадково запускав видалення).
 function entryRowHtml(e, idx, preview) {
+  const isNew = !preview && justAddedEntry && justAddedEntry.key === activeDateKey && justAddedEntry.idx === idx;
+  const isReveal = !preview && !isNew && listRevealPending;
   const remainingMs = e.deleted ? Math.max(0, PURGE_DELAY_MS - (Date.now() - (e.deletedAt || 0))) : 0;
   const rateLabel = (e.items && e.items.length === 1)
     ? e.items[0].rate.toFixed(2) + ' ₴/' + unitFor(e.items[0].code) + (e.order ? ' · Зам. №' + e.order : '')
     : (e.order ? 'Зам. №' + e.order : '');
   return (
-    '<div class="entry-row' + (e.deleted ? ' phantom' : '') + '" style="--i:' + idx + '">' +
-      '<div class="entry-info"><b>' + entryCodesLabel(e) + '</b><span> · ' + entryQtyLabel(e) + '</span><span class="entry-rate">' + rateLabel + '</span></div>' +
-      '<div class="entry-row-right">' +
-        (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
-        '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
-        (preview ? '' : (e.deleted
-          ? '<button class="entry-restore" data-idx="' + idx + '" title="Скасувати видалення">↺</button>'
-          : (entriesEditMode ? '<button class="entry-del" data-idx="' + idx + '">✕</button>' : ''))) +
+    '<div class="entry-row' + (e.deleted ? ' phantom' : '') + (isNew ? ' row-new' : (isReveal ? ' row-reveal' : '')) + '" data-idx="' + idx + '" style="--i:' + idx + '">' +
+      '<div class="entry-row-content">' +
+        '<div class="entry-info"><b>' + entryCodesLabel(e) + '</b><span> · ' + entryQtyLabel(e) + '</span><span class="entry-rate">' + rateLabel + '</span></div>' +
+        '<div class="entry-row-right">' +
+          (fmtTime(e.time) ? '<span class="entry-time">' + fmtTime(e.time) + '</span>' : '') +
+          '<div class="entry-row-bottom"><span class="entry-amount">' + fmtMoney(e.amount) + '</span>' +
+          (preview ? '' : (e.deleted
+            ? '<button class="entry-restore" data-idx="' + idx + '">' + RESTORE_ICON_SVG + 'Відновити</button>'
+            : (entriesEditMode ? '<button class="entry-del" data-idx="' + idx + '">✕</button>' : ''))) +
+          '</div>' +
         '</div>' +
       '</div>' +
-      (!preview && e.deleted ? '<div class="phantom-timer-track"><div class="delete-line-left" data-remaining="' + remainingMs + '"></div><div class="delete-line-right" data-remaining="' + remainingMs + '"></div></div>' : '') +
+      (!preview && e.deleted ? '<div class="phantom-burn-track"><div class="phantom-burn-fill" data-remaining="' + remainingMs + '"></div></div>' : '') +
     '</div>'
   );
 }
@@ -1438,6 +1706,7 @@ function renderEntryList() {
     list.innerHTML = entryStackHtml(entries);
     list.querySelector('.entry-stack').addEventListener('click', () => {
       entryListExpanded = true;
+      listRevealPending = true;
       renderEntryList();
     });
     document.getElementById('dayTotal').textContent = fmtMoney(dayTotal(activeDateKey));
@@ -1447,6 +1716,7 @@ function renderEntryList() {
   list.innerHTML =
     (entries.length > 3 ? '<button type="button" class="entry-list-collapse">▲ Згорнути список</button>' : '') +
     entries.map((e, idx) => entryRowHtml(e, idx, false)).join('');
+  listRevealPending = false;
 
   const collapseBtn = list.querySelector('.entry-list-collapse');
   if (collapseBtn) {
@@ -1495,22 +1765,7 @@ function renderEntryList() {
       });
     });
 
-    // Дві лінії ростуть від країв до центру за час, що лишився до
-    // остаточного видалення — зустрічаються посередині рівно в момент
-    // покупки. Явний форсований reflow (читання offsetWidth) між
-    // фіксацією стартового стану (0%) і вмиканням transition —
-    // надійніше за подвійний requestAnimationFrame: у деяких WebKit
-    // движках (зокрема iOS PWA в standalone-режимі) перший кадр rAF
-    // іноді "зʼїдається", і замість плавної анімації відразу
-    // застосовується кінцевий стан без проміжних кадрів.
-    list.querySelectorAll('.delete-line-left, .delete-line-right').forEach(line => {
-      const remaining = parseInt(line.getAttribute('data-remaining'), 10) || 0;
-      line.style.transitionDuration = '0s';
-      line.style.width = '0%';
-      void line.offsetWidth; // форсований reflow — фіксує стартовий стан
-      line.style.transitionDuration = remaining + 'ms';
-      requestAnimationFrame(() => { line.style.width = '50%'; });
-    });
+    playBurnLines(list);
   }
   document.getElementById('dayTotal').textContent = fmtMoney(dayTotal(activeDateKey));
 }
@@ -1547,7 +1802,10 @@ function openModal(y, m, d) {
   renderProductChoice();
   updatePreview();
   renderEntryList();
-  document.getElementById('overlay').classList.add('open');
+  const overlayEl = document.getElementById('overlay');
+  overlayEl.classList.remove('open');
+  void overlayEl.offsetWidth; // форсований reflow — фіксує стартовий стан (той самий прийом, що й у phantom-timer нижче), інакше важка синхронна побудова списку записів вище іноді "зʼїдає" перший кадр анімації відкриття
+  requestAnimationFrame(() => overlayEl.classList.add('open'));
   lockBodyScroll('day-modal-open');
 }
 
@@ -1613,9 +1871,9 @@ function updateSickToggleButton(status) {
     ? '✕ Скасувати «лікарняний»'
     : 'Позначити лікарняним';
 
-  const amountRow = document.getElementById('sickAmountRow');
+  const amountRowCollapse = document.getElementById('sickAmountRowCollapse');
   const amountInput = document.getElementById('sickAmountInput');
-  if (amountRow) amountRow.style.display = sick ? '' : 'none';
+  if (amountRowCollapse) amountRowCollapse.classList.toggle('is-collapsed', !sick);
   if (amountInput && document.activeElement !== amountInput) {
     const amt = sickAmount(activeDateKey);
     amountInput.value = amt !== null ? String(amt) : '';
@@ -1681,6 +1939,7 @@ document.getElementById('submitEntry').addEventListener('click', () => {
   const amount = Math.round(items.reduce((s, it) => s + it.rate * it.qty, 0) * 100) / 100;
   if (!earningsData[activeDateKey]) earningsData[activeDateKey] = [];
   earningsData[activeDateKey].push({ date: activeDateKey, processId: CURRENT_PROCESS_ID, items: items, amount: amount, order: order || null, time: new Date().toISOString() });
+  justAddedEntry = { key: activeDateKey, idx: earningsData[activeDateKey].length - 1 };
 
   const ok = saveEarnings();
   document.getElementById('saveNote').textContent = ok ? 'Збережено' : 'Не вдалося зберегти, спробуйте ще раз';
@@ -1694,22 +1953,15 @@ document.getElementById('submitEntry').addEventListener('click', () => {
   renderStats();
   renderGoal();
   renderTodayEntries();
+  justAddedEntry = null; // одноразова позначка — застосована, скидаємо
 });
 
 document.getElementById('addEarnToday').addEventListener('click', () => {
   openModal(getEffectiveNow().getFullYear(), getEffectiveNow().getMonth(), getEffectiveNow().getDate());
 });
 
-document.getElementById('prevMonth').addEventListener('click', () => {
-  viewMonth--;
-  if (viewMonth < 0) { viewMonth = 11; viewYear--; }
-  renderCalendar();
-});
-document.getElementById('nextMonth').addEventListener('click', () => {
-  viewMonth++;
-  if (viewMonth > 11) { viewMonth = 0; viewYear++; }
-  renderCalendar();
-});
+document.getElementById('prevMonth').addEventListener('click', () => slideCalendarMonth(-1));
+document.getElementById('nextMonth').addEventListener('click', () => slideCalendarMonth(1));
 
 document.getElementById('exportBtn').addEventListener('click', exportData);
 document.getElementById('importFile').addEventListener('change', (e) => {
@@ -1734,6 +1986,7 @@ document.getElementById('importFile').addEventListener('change', (e) => {
 
   initGoalCardListeners();
   initCoreProductTiles();
+  initProductStatsAccordion();
   initCloudSyncUI();
   initAppNav();
   initDevNoticeAccordion();

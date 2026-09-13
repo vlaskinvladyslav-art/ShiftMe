@@ -335,10 +335,25 @@ h1 span { color: var(--work); }
   text-transform: uppercase;
 }
 
+/* Обгортка для горизонтального "гортання" місяців — під час переходу
+   тут одночасно лежать ДВА .cal-grid (старий і новий, обидва абсолютно
+   спозиційовані), і саме viewport з overflow:hidden обрізає ту частину,
+   що виїжджає за межі екрана, поки місяці міняються місцями. */
+.cal-grid-viewport {
+  position: relative;
+  overflow: hidden;
+}
 .cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
+}
+.cal-grid.cal-grid-sliding {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  transition: transform 0.34s cubic-bezier(0.22, 0.9, 0.32, 1);
 }
 .day-cell {
   aspect-ratio: 1;
@@ -392,14 +407,31 @@ h1 span { color: var(--work); }
 
 .legend {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  row-gap: 7px;
+  column-gap: 16px;
   justify-content: center;
   margin-top: 16px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--muted);
 }
-.legend-item { display: flex; align-items: center; gap: 6px; }
-.legend-swatch { width: 10px; height: 10px; border-radius: 3px; }
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0;
+  animation: legendItemIn 0.4s ease forwards;
+}
+.legend-item:nth-child(1) { animation-delay: 0.02s; }
+.legend-item:nth-child(2) { animation-delay: 0.06s; }
+.legend-item:nth-child(3) { animation-delay: 0.1s; }
+.legend-item:nth-child(4) { animation-delay: 0.14s; }
+.legend-item:nth-child(5) { animation-delay: 0.18s; }
+@keyframes legendItemIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.legend-swatch { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 .legend-swatch.work { background: var(--work); }
 .legend-swatch.off { background: var(--off); }
 .legend-swatch.money { background: var(--money); }
@@ -497,6 +529,24 @@ h1 span { color: var(--work); }
   color: var(--muted);
   margin-bottom: 10px;
 }
+.product-stats-head {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 10px;
+  font-family: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+}
+.product-stats-chevron {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.3s cubic-bezier(0.22, 0.9, 0.32, 1);
+}
+.product-stats-head.open .product-stats-chevron { transform: rotate(180deg); }
 .chart-avg { font-family: 'JetBrains Mono', monospace; color: var(--money); font-size: 11px; }
 
 .chart-legend {
@@ -517,11 +567,12 @@ h1 span { color: var(--work); }
   fill: var(--muted);
 }
 
-/* Product breakdown list */
-.product-stat-row {
-  margin-bottom: 12px;
-}
-.product-stat-row:last-child { margin-bottom: 4px; }
+/* Product breakdown list — кожен product-stat-block об'єднує (згори
+   вниз) прихований міні-графік динаміки й сам рядок статистики, тому
+   вони виглядають одним цільним блоком, а не двома розрізненими. */
+.product-stat-block { margin-bottom: 12px; }
+.product-stat-block:last-child { margin-bottom: 4px; }
+.product-stat-row { margin-bottom: 0; }
 .product-stat-top {
   display: flex;
   justify-content: space-between;
@@ -547,7 +598,7 @@ h1 span { color: var(--work); }
   border-radius: 4px;
   background: linear-gradient(90deg, var(--work), var(--money));
 }
-.product-stat-row:nth-child(even) .product-bar-fill {
+.product-stat-block:nth-child(even) .product-bar-fill {
   background: linear-gradient(90deg, var(--off), #7fe0cb);
 }
 .stats-empty {
@@ -572,6 +623,57 @@ h1 span { color: var(--work); }
   margin-top: 4px;
 }
 .product-stats-toggle:active { background: var(--line); }
+
+/* ---------- Per-product mini charts (accordion, over each stat row) ---------- */
+.product-mini-chart-collapse { margin-bottom: 0; }
+.mini-chart-card {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 10px 8px;
+  margin-bottom: 8px;
+}
+.mini-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 4px;
+}
+.mini-chart-diff { font-weight: 700; }
+.mini-chart-diff.up { color: var(--off); }
+.mini-chart-diff.down { color: var(--work); }
+.mini-chart-wrap { position: relative; }
+.mini-chart-svg { display: block; }
+.mini-chart-dot { cursor: pointer; }
+.mini-chart-empty {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  padding: 10px 0 4px;
+}
+.mini-chart-tooltip {
+  position: absolute;
+  transform: translate(-50%, -130%);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 10.5px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  animation: miniTooltipIn 0.18s ease;
+  z-index: 2;
+}
+@keyframes miniTooltipIn {
+  from { opacity: 0; transform: translate(-50%, -110%); }
+  to { opacity: 1; transform: translate(-50%, -130%); }
+}
 
 /* ---------- Product picker extras: add / show-all tiles ---------- */
 .product-add-tile, .product-toggle-tile {
@@ -640,8 +742,18 @@ h1 span { color: var(--work); }
   transition: transform 0.12s ease, background 0.2s ease, border-color 0.2s ease;
 }
 .cal-nav button:active, .add-earn-btn:active, .submit-btn:active { transform: scale(0.95); }
-.product-btn { transition: transform 0.12s ease, border-color 0.15s ease, background 0.15s ease; }
-.product-btn:active { transform: scale(0.96); }
+/* iOS-подібний тактильний відгук: різке, майже миттєве натискання
+   (короткий ease-out) і м'яке пружне повернення з легким переlongshoot
+   при відпусканні (spring-крива з overshoot) — та сама асиметрія, що й
+   у нативних iOS-кнопках, де палець "продавлює" швидко, а відпускання
+   плавне й трохи пружне. */
+.product-btn {
+  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.15s ease, background 0.15s ease;
+}
+.product-btn:active {
+  transform: scale(0.94);
+  transition: transform 0.09s cubic-bezier(0.22, 0.9, 0.32, 1), border-color 0.15s ease, background 0.15s ease;
+}
 
 .month-total b, .stat-value, .status-value, #todayEarnValue, #chartAvgLabel {
   transition: color 0.2s ease;
@@ -672,8 +784,8 @@ h1 span { color: var(--work); }
 }
 .today-entry-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -682,11 +794,21 @@ h1 span { color: var(--work); }
   font-family: 'JetBrains Mono', monospace;
   color: var(--muted);
   cursor: pointer;
-  transition: transform 0.12s ease, background 0.15s ease;
+  transition: transform 0.12s ease, background 0.15s ease, opacity 0.3s ease;
+}
+.today-entry-row:active { transform: scale(0.98); background: var(--line); }
+.today-entry-row.row-new {
+  animation: entryRowIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.today-entry-row.row-reveal {
   animation: entryRowIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   animation-delay: calc(var(--i, 0) * 0.045s);
 }
-.today-entry-row:active { transform: scale(0.98); background: var(--line); }
+.today-entry-row-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .today-entry-code {
   display: inline-flex;
   align-items: center;
@@ -710,55 +832,67 @@ h1 span { color: var(--work); }
   font-size: 12px;
   flex-shrink: 0;
 }
-.today-entry-restore {
-  background: none;
+.today-entry-restore,
+.entry-restore {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(244, 201, 93, 0.14);
   border: none;
   color: var(--money);
-  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 9px 4px 7px;
   cursor: pointer;
-  padding: 2px 4px;
   flex-shrink: 0;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.15s ease;
 }
+.today-entry-restore svg, .entry-restore svg { width: 11px; height: 11px; flex-shrink: 0; }
+.today-entry-restore:active, .entry-restore:active { transform: scale(0.92); background: rgba(244, 201, 93, 0.28); }
 
-/* Phantom (soft-deleted) entries: faded, with a shrinking bar (see
-   .phantom-timer-track below) showing how much of the grace period is
-   left before permanent removal. No dashed border — just the opacity
-   drop, so the bottom-edge countdown line is the only "this is being
-   deleted" signal. */
+/* Phantom (soft-deleted) entries: лише трохи прозоріші — жодного
+   закреслення чи пунктиру — а прогрес видалення несе єдина "лінія, що
+   згорає" (.phantom-burn-track/.phantom-burn-fill) під рядком: суцільна
+   смужка, яка плавно стягується зліва направо протягом усього
+   10-секундного вікна на відновлення. Коли час вичерпується, сам рядок
+   ще й плавно згасає й "складається" по висоті (.row-removing, керується
+   з script.js), а не просто зникає одним стрибком при переперемальовці
+   списку. */
 .entry-row.phantom, .today-entry-row.phantom {
-  opacity: 0.45;
+  opacity: 0.62;
   cursor: default;
 }
-.entry-row.phantom .entry-amount { text-decoration: line-through; }
-.today-entry-row.phantom .today-entry-amount { text-decoration: line-through; }
-.entry-restore {
-  background: none;
-  border: none;
-  color: var(--money);
-  font-size: 16px;
-  cursor: pointer;
-  padding: 2px 6px;
+.entry-row.row-removing,
+.today-entry-row.row-removing {
+  overflow: hidden;
+  opacity: 0;
+  transform: scale(0.97);
+  margin-bottom: 0;
+  transition: max-height 0.34s cubic-bezier(0.22, 0.9, 0.32, 1), opacity 0.26s ease, transform 0.26s ease, margin-bottom 0.3s ease;
+  pointer-events: none;
 }
-.phantom-timer-track {
+.phantom-burn-track {
   position: relative;
-  height: 2px;
-  background: var(--surface-2);
-  border-radius: 2px;
-  margin-top: 6px;
+  height: 3px;
+  background: var(--surface);
+  border-radius: 3px;
+  margin-top: 2px;
   overflow: hidden;
 }
-.delete-line-left,
-.delete-line-right {
+.entry-row .phantom-burn-track { margin-top: 8px; background: var(--surface); }
+.phantom-burn-fill {
   position: absolute;
-  top: 0;
-  height: 100%;
-  width: 0%;
-  background: var(--money);
-  transition-property: width;
+  inset: 0;
+  width: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--money), var(--danger));
+  transform: scaleX(1);
+  transform-origin: left center;
+  transition-property: transform;
   transition-timing-function: linear;
 }
-.delete-line-left { left: 0; }
-.delete-line-right { right: 0; }
 
 /* ---------- Goal card ---------- */
 .goal-card {
@@ -1069,8 +1203,8 @@ h1 span { color: var(--work); }
   50% { box-shadow: inset 0 0 0 1.5px rgba(244, 201, 93, 0.95); }
 }
 @keyframes goalChipIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.94); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .goal-chip.chip-off { border-style: dashed; opacity: 0.7; box-shadow: none; }
 .goal-chip.chip-off.chip-today { opacity: 1; }
@@ -1526,10 +1660,11 @@ h1 span { color: var(--work); }
   padding: 18px 18px 26px;
   max-height: 85vh;
   overflow-y: auto;
-  transform: translateY(28px) scale(0.98);
-  transition: transform 0.4s cubic-bezier(0.22, 0.9, 0.32, 1);
+  opacity: 0;
+  transform: translateY(48px) scale(0.97);
+  transition: transform 0.45s cubic-bezier(0.22, 0.9, 0.32, 1), opacity 0.35s ease;
 }
-.overlay.open .modal { transform: translateY(0) scale(1); }
+.overlay.open .modal { opacity: 1; transform: translateY(0) scale(1); }
 .modal-handle {
   width: 36px; height: 4px;
   background: var(--line);
@@ -1565,24 +1700,35 @@ h1 span { color: var(--work); }
 
 .entry-list { margin-bottom: 14px; }
 .entry-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   background: var(--surface-2);
   border-radius: 10px;
   padding: 10px 12px;
   margin-bottom: 7px;
   font-size: 13px;
-  /* Каскадна поява при розгортанні списку — spring-крива з легким
-     "перельотом" (overshoot) дає той самий пружний, живий відчуття, що
-     й у появи карток 14-денного графіка, лише трохи виразніше. Кожен
-     рядок сам виставляє собі --i (порядковий індекс) інлайн-стилем —
-     звідси затримка каскадом. */
+  transition: opacity 0.3s ease;
+}
+.entry-row-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+/* Каскадна поява — програється у двох випадках: (1) для щойно доданого
+   запису (.row-new, script.js ставить його один раз при створенні), і
+   (2) для всіх рядків одразу, коли список щойно розгорнули зі стопки
+   (.row-reveal, зі stagger-затримкою через --i) — і НЕ на кожен звичайний
+   перемальовок (видалення/відновлення сусіднього рядка), інакше весь
+   список "підстрибував" би щоразу заново. Spring-крива з легким
+   "перельотом" (overshoot) дає той самий пружний, живий відчуття, що
+   й у появи карток 14-денного графіка. */
+.entry-row.row-new {
+  animation: entryRowIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.entry-row.row-reveal {
   animation: entryRowIn 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   animation-delay: calc(var(--i, 0) * 0.045s);
 }
 @keyframes entryRowIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  from { opacity: 0; transform: translateY(14px) scale(0.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -1883,8 +2029,31 @@ h1 span { color: var(--work); }
 .submit-btn:disabled { opacity: 0.4; }
 .save-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; }
 
+/* ---------- Плавне показ/приховування секцій модалки дня ----------
+   Раніше display:none/block перемикались миттєво (CSS такі властивості
+   анімувати не вміє) — звідси й різке "стрибання" product-choice,
+   qty-row, нотаток тощо при позначенні дня лікарняним/відпусткою.
+   Замість цього — grid-template-rows 0fr↔1fr на обгортці .collapsible:
+   працює для будь-якої висоти вмісту без вимірювання scrollHeight в JS,
+   а вкладений .collapsible-inner з overflow:hidden фізично обрізає
+   вміст під час згортання, а не просто ховає його. */
+.collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition: grid-template-rows 0.4s cubic-bezier(0.22, 0.9, 0.32, 1), opacity 0.3s ease;
+}
+.collapsible > .collapsible-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+.collapsible.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .modal-off-note {
-  display: none;
   background: var(--off-dim);
   color: var(--off);
   border-radius: 10px;
@@ -1894,7 +2063,6 @@ h1 span { color: var(--work); }
   margin-bottom: 4px;
 }
 .modal-leave-note {
-  display: none;
   background: rgba(180, 140, 255, 0.12);
   color: #c9a8ff;
   border-radius: 10px;
@@ -1903,30 +2071,7 @@ h1 span { color: var(--work); }
   text-align: center;
   margin-bottom: 4px;
 }
-.modal.day-off .form-label,
-.modal.day-off .product-choice,
-.modal.day-off .product-add-form,
-.modal.day-off .qty-row,
-.modal.day-off .preview-line,
-.modal.day-off .submit-btn,
-.modal.day-leave .form-label,
-.modal.day-leave .product-choice,
-.modal.day-leave .product-add-form,
-.modal.day-leave .qty-row,
-.modal.day-leave .preview-line,
-.modal.day-leave .submit-btn,
-.modal.day-sick .form-label,
-.modal.day-sick .product-choice,
-.modal.day-sick .product-add-form,
-.modal.day-sick .qty-row,
-.modal.day-sick .preview-line,
-.modal.day-sick .submit-btn { display: none; }
-.modal.day-off .modal-off-note { display: block; }
-.modal.day-leave .modal-leave-note { display: block; }
-.modal.day-sick .modal-sick-note { display: block; }
-
 .modal-sick-note {
-  display: none;
   background: rgba(110, 168, 255, 0.12);
   color: #6ea8ff;
   border-radius: 10px;
@@ -1935,8 +2080,29 @@ h1 span { color: var(--work); }
   text-align: center;
   margin-bottom: 4px;
 }
+
+/* За замовчуванням (звичайний робочий день) — нотатки згорнуті, а форма
+   запису розгорнута (базовий стан .collapsible вище). day-off/leave/sick
+   на .modal лише перемикає, яка саме обгортка розгорнута. */
+#modalOffNoteCollapse,
+#modalLeaveNoteCollapse,
+#modalSickNoteCollapse {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.modal.day-off #entryFieldsCollapse,
+.modal.day-leave #entryFieldsCollapse,
+.modal.day-sick #entryFieldsCollapse {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+.modal.day-off #modalOffNoteCollapse { grid-template-rows: 1fr; opacity: 1; pointer-events: auto; }
+.modal.day-leave #modalLeaveNoteCollapse { grid-template-rows: 1fr; opacity: 1; pointer-events: auto; }
+.modal.day-sick #modalSickNoteCollapse { grid-template-rows: 1fr; opacity: 1; pointer-events: auto; }
+
 #sickAmountRow {
-  display: none;
   margin-bottom: 14px;
 }
 #sickAmountRow label {

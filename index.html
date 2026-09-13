@@ -125,7 +125,9 @@
   <div class="weekdays">
     <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Нд</span>
   </div>
-  <div class="cal-grid" id="calGrid"></div>
+  <div class="cal-grid-viewport" id="calGridViewport">
+    <div class="cal-grid" id="calGrid"></div>
+  </div>
 
   <div class="month-total">
     <span>Заробіток за місяць</span>
@@ -188,7 +190,10 @@
   </div>
 
   <div class="product-stats-card">
-    <div class="chart-head"><span>По виробах, за весь час</span></div>
+    <button type="button" class="chart-head product-stats-head" id="productStatsHead" aria-expanded="false" aria-controls="productStats">
+      <span>По виробах, за весь час</span>
+      <span class="product-stats-chevron" aria-hidden="true"><span class="chevron"></span><span class="chevron"></span></span>
+    </button>
     <div id="productStats"></div>
   </div>
 
@@ -229,14 +234,30 @@
       <b id="dayTotal">0 ₴</b>
     </div>
 
-    <p class="modal-off-note" id="modalOffNote">Вихідний день — запис заробітку недоступний.</p>
-    <p class="modal-leave-note" id="modalLeaveNote">Вихідний за свій рахунок — заробіток за цей день не рахується в статистику й ціль.</p>
-    <p class="modal-sick-note" id="modalSickNote">Лікарняний — заробіток за цей день не рахується в статистику й ціль.</p>
-    <div id="sickAmountRow">
-      <label for="sickAmountInput">Сума лікарняних, грн (поки вручну — заповниш, коли дізнаєшся розрахунок)</label>
-      <input type="text" inputmode="decimal" id="sickAmountInput" placeholder="напр. 850">
+    <div class="collapsible note-collapsible" id="modalOffNoteCollapse">
+      <div class="collapsible-inner">
+        <p class="modal-off-note" id="modalOffNote">Вихідний день — запис заробітку недоступний.</p>
+      </div>
+    </div>
+    <div class="collapsible note-collapsible" id="modalLeaveNoteCollapse">
+      <div class="collapsible-inner">
+        <p class="modal-leave-note" id="modalLeaveNote">Вихідний за свій рахунок — заробіток за цей день не рахується в статистику й ціль.</p>
+      </div>
+    </div>
+    <div class="collapsible note-collapsible" id="modalSickNoteCollapse">
+      <div class="collapsible-inner">
+        <p class="modal-sick-note" id="modalSickNote">Лікарняний — заробіток за цей день не рахується в статистику й ціль.</p>
+      </div>
+    </div>
+    <div class="collapsible is-collapsed" id="sickAmountRowCollapse">
+      <div class="collapsible-inner" id="sickAmountRow">
+        <label for="sickAmountInput">Сума лікарняних, грн (поки вручну — заповниш, коли дізнаєшся розрахунок)</label>
+        <input type="text" inputmode="decimal" id="sickAmountInput" placeholder="напр. 850">
+      </div>
     </div>
 
+    <div class="collapsible entry-fields-collapse" id="entryFieldsCollapse">
+    <div class="collapsible-inner">
     <p class="form-label">Виріб</p>
     <div class="segmented-toggle entry-mode-toggle" id="entryModeToggle">
       <button type="button" class="segmented-btn active" data-value="single">Один виріб</button>
@@ -283,6 +304,8 @@
     <p class="preview-line" id="previewLine"></p>
 
     <button class="submit-btn" id="submitEntry" disabled>Додати запис</button>
+    </div>
+    </div>
     <p class="save-note" id="saveNote"></p>
   </div>
 </div>
