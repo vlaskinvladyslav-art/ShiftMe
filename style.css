@@ -1187,7 +1187,7 @@ h1 span { color: var(--work); }
 .goal-chip.chip-today {
   border-color: var(--money);
   background: rgba(244, 201, 93, 0.08);
-  animation: goalChipPulse 2.4s ease-in-out 0.5s infinite;
+  animation: goalChipIn 0.4s cubic-bezier(0.22, 0.9, 0.32, 1) forwards, goalChipPulse 2.4s ease-in-out 0.5s infinite;
 }
 
 /* Раніше світіння виходило за межі самої картки (inset:-3px + розмитий
