@@ -2052,6 +2052,16 @@ h1 span { color: var(--work); }
   opacity: 0;
   pointer-events: none;
 }
+/* Тимчасово вимикає transition на всіх .collapsible всередині модалки —
+   ставиться на .modal рівно на час першопочаткового налаштування у
+   openModal() (script.js), знімається в тому самому кадрі форсованим
+   reflow. Без цього свіже відкриття "успадковувало" б стан попереднього
+   дня і плавно доганяло б новий 0.4s ПІСЛЯ появи аркуша — звідси різкий
+   стрибок висоти при переході, наприклад, з вихідного дня на робочий. */
+.modal.modal-instant .collapsible,
+.modal.modal-instant .collapsible > .collapsible-inner {
+  transition: none !important;
+}
 
 .modal-off-note {
   background: var(--off-dim);

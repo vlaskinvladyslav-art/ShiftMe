@@ -1777,14 +1777,25 @@ function openModal(y, m, d) {
   updateEntriesEditButton();
   const status = getStatus(y, m, d);
   const dt = new Date(y, m, d);
+  const modalBox = document.getElementById('modalBox');
+  // На час першопочаткового налаштування модалки вимикаємо transition у
+  // всіх .collapsible всередині неї (нотатки/поля запису/сума
+  // лікарняних) — інакше при СВІЖОМУ відкритті вони б плавно
+  // "доганяли" стан попереднього відкритого дня (0.4s) одночасно з тим,
+  // як сам аркуш модалки виїжджає знизу, і висота аркуша (яка залежить
+  // від їхнього вмісту) стрибала б уже ПІСЛЯ появи. .modal-instant
+  // знімається одразу нижче форсованим reflow — на живі перемикання
+  // "лікарняний"/"за свій рахунок" ПІД ЧАС того, як модалка вже
+  // відкрита, це жодним чином не впливає, там transition лишається.
+  modalBox.classList.add('modal-instant');
   document.getElementById('modalTitle').textContent = d + ' ' + monthNames[m] + ' ' + y;
   document.getElementById('modalStatus').textContent = statusLabel(status) + ' · ' + weekdayNames[dt.getDay()];
   document.getElementById('qtyInput').value = '';
   document.getElementById('orderInput').value = '';
   document.getElementById('saveNote').textContent = '';
-  document.getElementById('modalBox').classList.toggle('day-off', status !== 'work');
-  document.getElementById('modalBox').classList.toggle('day-leave', status === 'work' && isLeaveDay(activeDateKey));
-  document.getElementById('modalBox').classList.toggle('day-sick', status === 'work' && isSickDay(activeDateKey));
+  modalBox.classList.toggle('day-off', status !== 'work');
+  modalBox.classList.toggle('day-leave', status === 'work' && isLeaveDay(activeDateKey));
+  modalBox.classList.toggle('day-sick', status === 'work' && isSickDay(activeDateKey));
   updateLeaveToggleButton(status);
   updateSickToggleButton(status);
   document.getElementById('productAddForm').style.display = 'none';
@@ -1802,6 +1813,9 @@ function openModal(y, m, d) {
   renderProductChoice();
   updatePreview();
   renderEntryList();
+  void modalBox.offsetHeight; // форсований reflow — фіксує кінцевий стан (з .modal-instant) до того, як його прибрати
+  modalBox.classList.remove('modal-instant');
+
   const overlayEl = document.getElementById('overlay');
   overlayEl.classList.remove('open');
   void overlayEl.offsetWidth; // форсований reflow — фіксує стартовий стан (той самий прийом, що й у phantom-timer нижче), інакше важка синхронна побудова списку записів вище іноді "зʼїдає" перший кадр анімації відкриття
@@ -2073,10 +2087,10 @@ function initCloudSyncUI() {
   const forceSyncBtn = document.getElementById('cloudForceSyncBtn');
 
   function setDotState(wrapEl, state) {
-    wrapEl.className = 'status-dot-wrap';
-    if (state === 'connected') wrapEl.classList.add('is-green');
-    else if (state === 'offline' || state === 'blocked') wrapEl.classList.add('is-red');
-    else wrapEl.classList.add('is-orange'); // connecting
+    const cls = state === 'connected' ? 'is-green' : ((state === 'offline' || state === 'blocked') ? 'is-red' : 'is-orange');
+    if (wrapEl.dataset.dotState === cls) return; // колір не змінився — не чіпаємо className
+    wrapEl.dataset.dotState = cls;
+    wrapEl.className = 'status-dot-wrap ' + cls;
   }
 
   function formatSyncTime(ts) {
