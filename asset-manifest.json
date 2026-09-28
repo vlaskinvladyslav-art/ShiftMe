@@ -1,0 +1,140 @@
+{
+  "../@vite-plugin-pwa/virtual:pwa-register": {
+    "file": "assets/virtual_pwa-register-OmIIhEvT.js",
+    "name": "virtual_pwa-register",
+    "src": "../@vite-plugin-pwa/virtual:pwa-register",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "dynamicImports": [
+      "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
+    ]
+  },
+  "_UpdatesBanner-Di5Q5vvL.css": {
+    "file": "assets/UpdatesBanner-Di5Q5vvL.css",
+    "src": "_UpdatesBanner-Di5Q5vvL.css"
+  },
+  "_UpdatesBanner-DpmVf4KZ.js": {
+    "file": "assets/UpdatesBanner-DpmVf4KZ.js",
+    "name": "UpdatesBanner",
+    "imports": [
+      "index.html",
+      "_transition-DXRrfxQO.js"
+    ],
+    "css": [
+      "assets/UpdatesBanner-Di5Q5vvL.css"
+    ]
+  },
+  "_balancingLog-CcA9V6VT.js": {
+    "file": "assets/balancingLog-CcA9V6VT.js",
+    "name": "balancingLog",
+    "imports": [
+      "_firebase-DMVDwz5m.js",
+      "index.html"
+    ]
+  },
+  "_firebase-DMVDwz5m.js": {
+    "file": "assets/firebase-DMVDwz5m.js",
+    "name": "firebase"
+  },
+  "_transition-DXRrfxQO.js": {
+    "file": "assets/transition-DXRrfxQO.js",
+    "name": "transition",
+    "imports": [
+      "index.html"
+    ]
+  },
+  "index.html": {
+    "file": "assets/index-DBtLAlGG.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_firebase-DMVDwz5m.js"
+    ],
+    "dynamicImports": [
+      "src/processes/balancing/BalancingProcess.svelte",
+      "src/processes/balancing/balancingStats.js",
+      "src/processes/quality_control/QualityControlProcess.svelte",
+      "src/components/windows/AdminWindow.svelte",
+      "src/components/windows/StatsWindow.svelte",
+      "../@vite-plugin-pwa/virtual:pwa-register"
+    ],
+    "css": [
+      "assets/index-CEqNrKDO.css"
+    ]
+  },
+  "node_modules/workbox-window/build/workbox-window.prod.es5.mjs": {
+    "file": "assets/workbox-window.prod.es5-Bd17z0YL.js",
+    "name": "workbox-window.prod.es5",
+    "src": "node_modules/workbox-window/build/workbox-window.prod.es5.mjs",
+    "isDynamicEntry": true
+  },
+  "src/components/windows/AdminWindow.svelte": {
+    "file": "assets/AdminWindow-DhXPJMlO.js",
+    "name": "AdminWindow",
+    "src": "src/components/windows/AdminWindow.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "_firebase-DMVDwz5m.js",
+      "index.html"
+    ],
+    "css": [
+      "assets/AdminWindow-Db3QN0xe.css"
+    ]
+  },
+  "src/components/windows/StatsWindow.svelte": {
+    "file": "assets/StatsWindow-DAbAbK9J.js",
+    "name": "StatsWindow",
+    "src": "src/components/windows/StatsWindow.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_transition-DXRrfxQO.js"
+    ],
+    "css": [
+      "assets/StatsWindow-DW02oQ82.css"
+    ]
+  },
+  "src/processes/balancing/BalancingProcess.svelte": {
+    "file": "assets/BalancingProcess-DBcqFsdg.js",
+    "name": "BalancingProcess",
+    "src": "src/processes/balancing/BalancingProcess.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_transition-DXRrfxQO.js",
+      "_UpdatesBanner-DpmVf4KZ.js",
+      "_balancingLog-CcA9V6VT.js"
+    ],
+    "css": [
+      "assets/BalancingProcess-D_VjRznc.css"
+    ]
+  },
+  "src/processes/balancing/balancingStats.js": {
+    "file": "assets/balancingStats-CilmNg4s.js",
+    "name": "balancingStats",
+    "src": "src/processes/balancing/balancingStats.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_balancingLog-CcA9V6VT.js"
+    ]
+  },
+  "src/processes/quality_control/QualityControlProcess.svelte": {
+    "file": "assets/QualityControlProcess-CqUKsqKJ.js",
+    "name": "QualityControlProcess",
+    "src": "src/processes/quality_control/QualityControlProcess.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "_firebase-DMVDwz5m.js",
+      "index.html",
+      "_transition-DXRrfxQO.js",
+      "_UpdatesBanner-DpmVf4KZ.js"
+    ],
+    "css": [
+      "assets/QualityControlProcess-BWl_P5hQ.css"
+    ]
+  }
+}
