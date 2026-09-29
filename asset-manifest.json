@@ -1,6 +1,6 @@
 {
   "../@vite-plugin-pwa/virtual:pwa-register": {
-    "file": "assets/virtual_pwa-register-OmIIhEvT.js",
+    "file": "assets/virtual_pwa-register-DVdKeqQ6.js",
     "name": "virtual_pwa-register",
     "src": "../@vite-plugin-pwa/virtual:pwa-register",
     "isDynamicEntry": true,
@@ -11,24 +11,31 @@
       "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
     ]
   },
-  "_UpdatesBanner-Di5Q5vvL.css": {
-    "file": "assets/UpdatesBanner-Di5Q5vvL.css",
-    "src": "_UpdatesBanner-Di5Q5vvL.css"
-  },
-  "_UpdatesBanner-DpmVf4KZ.js": {
-    "file": "assets/UpdatesBanner-DpmVf4KZ.js",
+  "_UpdatesBanner-BrEAkCSD.js": {
+    "file": "assets/UpdatesBanner-BrEAkCSD.js",
     "name": "UpdatesBanner",
     "imports": [
       "index.html",
-      "_transition-DXRrfxQO.js"
+      "_transition-B3IpcqrD.js"
     ],
     "css": [
       "assets/UpdatesBanner-Di5Q5vvL.css"
     ]
   },
-  "_balancingLog-CcA9V6VT.js": {
-    "file": "assets/balancingLog-CcA9V6VT.js",
+  "_UpdatesBanner-Di5Q5vvL.css": {
+    "file": "assets/UpdatesBanner-Di5Q5vvL.css",
+    "src": "_UpdatesBanner-Di5Q5vvL.css"
+  },
+  "_balancingLog-C-9DJQE9.js": {
+    "file": "assets/balancingLog-C-9DJQE9.js",
     "name": "balancingLog",
+    "imports": [
+      "_dayLog-Beh_iCUZ.js"
+    ]
+  },
+  "_dayLog-Beh_iCUZ.js": {
+    "file": "assets/dayLog-Beh_iCUZ.js",
+    "name": "dayLog",
     "imports": [
       "_firebase-DMVDwz5m.js",
       "index.html"
@@ -38,15 +45,23 @@
     "file": "assets/firebase-DMVDwz5m.js",
     "name": "firebase"
   },
-  "_transition-DXRrfxQO.js": {
-    "file": "assets/transition-DXRrfxQO.js",
+  "_motion-DjJ4Wwzp.js": {
+    "file": "assets/motion-DjJ4Wwzp.js",
+    "name": "motion",
+    "imports": [
+      "index.html",
+      "_UpdatesBanner-BrEAkCSD.js"
+    ]
+  },
+  "_transition-B3IpcqrD.js": {
+    "file": "assets/transition-B3IpcqrD.js",
     "name": "transition",
     "imports": [
       "index.html"
     ]
   },
   "index.html": {
-    "file": "assets/index-DBtLAlGG.js",
+    "file": "assets/index-vbraGBtN.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -57,12 +72,13 @@
       "src/processes/balancing/BalancingProcess.svelte",
       "src/processes/balancing/balancingStats.js",
       "src/processes/quality_control/QualityControlProcess.svelte",
+      "src/processes/induction_control/InductionControlProcess.svelte",
       "src/components/windows/AdminWindow.svelte",
       "src/components/windows/StatsWindow.svelte",
       "../@vite-plugin-pwa/virtual:pwa-register"
     ],
     "css": [
-      "assets/index-CEqNrKDO.css"
+      "assets/index-BaY1DdDL.css"
     ]
   },
   "node_modules/workbox-window/build/workbox-window.prod.es5.mjs": {
@@ -72,7 +88,7 @@
     "isDynamicEntry": true
   },
   "src/components/windows/AdminWindow.svelte": {
-    "file": "assets/AdminWindow-DhXPJMlO.js",
+    "file": "assets/AdminWindow-CkiQk2qQ.js",
     "name": "AdminWindow",
     "src": "src/components/windows/AdminWindow.svelte",
     "isDynamicEntry": true,
@@ -85,56 +101,73 @@
     ]
   },
   "src/components/windows/StatsWindow.svelte": {
-    "file": "assets/StatsWindow-DAbAbK9J.js",
+    "file": "assets/StatsWindow-CX9HeBmU.js",
     "name": "StatsWindow",
     "src": "src/components/windows/StatsWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_transition-DXRrfxQO.js"
+      "_transition-B3IpcqrD.js"
     ],
     "css": [
-      "assets/StatsWindow-DW02oQ82.css"
+      "assets/StatsWindow-BXI-4gns.css"
     ]
   },
   "src/processes/balancing/BalancingProcess.svelte": {
-    "file": "assets/BalancingProcess-DBcqFsdg.js",
+    "file": "assets/BalancingProcess-C9wUnngT.js",
     "name": "BalancingProcess",
     "src": "src/processes/balancing/BalancingProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_transition-DXRrfxQO.js",
-      "_UpdatesBanner-DpmVf4KZ.js",
-      "_balancingLog-CcA9V6VT.js"
+      "_transition-B3IpcqrD.js",
+      "_motion-DjJ4Wwzp.js",
+      "_UpdatesBanner-BrEAkCSD.js",
+      "_balancingLog-C-9DJQE9.js"
     ],
     "css": [
       "assets/BalancingProcess-D_VjRznc.css"
     ]
   },
   "src/processes/balancing/balancingStats.js": {
-    "file": "assets/balancingStats-CilmNg4s.js",
+    "file": "assets/balancingStats-B95mrpc6.js",
     "name": "balancingStats",
     "src": "src/processes/balancing/balancingStats.js",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_balancingLog-CcA9V6VT.js"
+      "_balancingLog-C-9DJQE9.js"
+    ]
+  },
+  "src/processes/induction_control/InductionControlProcess.svelte": {
+    "file": "assets/InductionControlProcess-Cz1H3pRB.js",
+    "name": "InductionControlProcess",
+    "src": "src/processes/induction_control/InductionControlProcess.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_transition-B3IpcqrD.js",
+      "_UpdatesBanner-BrEAkCSD.js",
+      "_dayLog-Beh_iCUZ.js"
+    ],
+    "css": [
+      "assets/InductionControlProcess-DrgjJVuf.css"
     ]
   },
   "src/processes/quality_control/QualityControlProcess.svelte": {
-    "file": "assets/QualityControlProcess-CqUKsqKJ.js",
+    "file": "assets/QualityControlProcess-Cq1h2a9O.js",
     "name": "QualityControlProcess",
     "src": "src/processes/quality_control/QualityControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "_firebase-DMVDwz5m.js",
       "index.html",
-      "_transition-DXRrfxQO.js",
-      "_UpdatesBanner-DpmVf4KZ.js"
+      "_transition-B3IpcqrD.js",
+      "_motion-DjJ4Wwzp.js",
+      "_UpdatesBanner-BrEAkCSD.js"
     ],
     "css": [
-      "assets/QualityControlProcess-BWl_P5hQ.css"
+      "assets/QualityControlProcess-CaGBjsWw.css"
     ]
   }
 }
