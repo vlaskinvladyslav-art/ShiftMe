@@ -1,0 +1,1 @@
+function e(e,t=document.body){return t.appendChild(e),{destroy(){e.parentNode&&e.parentNode.removeChild(e)}}}var t=0;function n(){t++,document.body.classList.add(`block-info-open`)}function r(){t=Math.max(0,t-1),t===0&&document.body.classList.remove(`block-info-open`)}export{e as n,r,n as t};
