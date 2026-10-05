@@ -1,6 +1,6 @@
 {
   "../@vite-plugin-pwa/virtual:pwa-register": {
-    "file": "assets/virtual_pwa-register-BwHD8Sn0.js",
+    "file": "assets/virtual_pwa-register-DraTTS8V.js",
     "name": "virtual_pwa-register",
     "src": "../@vite-plugin-pwa/virtual:pwa-register",
     "isDynamicEntry": true,
@@ -11,31 +11,31 @@
       "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
     ]
   },
-  "_UpdatesBanner-Di5Q5vvL.css": {
-    "file": "assets/UpdatesBanner-Di5Q5vvL.css",
-    "src": "_UpdatesBanner-Di5Q5vvL.css"
-  },
-  "_UpdatesBanner-iSu8EkXP.js": {
-    "file": "assets/UpdatesBanner-iSu8EkXP.js",
+  "_UpdatesBanner-Df9dFX3s.js": {
+    "file": "assets/UpdatesBanner-Df9dFX3s.js",
     "name": "UpdatesBanner",
     "imports": [
       "index.html",
       "_easing-_A3xgiwO.js",
-      "_transition-Chv1f_Yf.js"
+      "_transition-DyZxokMz.js"
     ],
     "css": [
-      "assets/UpdatesBanner-Di5Q5vvL.css"
+      "assets/UpdatesBanner-bsBLppbj.css"
     ]
   },
-  "_balancingLog-Bg6_luJp.js": {
-    "file": "assets/balancingLog-Bg6_luJp.js",
+  "_UpdatesBanner-bsBLppbj.css": {
+    "file": "assets/UpdatesBanner-bsBLppbj.css",
+    "src": "_UpdatesBanner-bsBLppbj.css"
+  },
+  "_balancingLog-lPTOJOGk.js": {
+    "file": "assets/balancingLog-lPTOJOGk.js",
     "name": "balancingLog",
     "imports": [
-      "_dayLog-qlappf5T.js"
+      "_dayLog-D2WA8wcR.js"
     ]
   },
-  "_dayLog-qlappf5T.js": {
-    "file": "assets/dayLog-qlappf5T.js",
+  "_dayLog-D2WA8wcR.js": {
+    "file": "assets/dayLog-D2WA8wcR.js",
     "name": "dayLog",
     "imports": [
       "_firebase-BRk76dDo.js",
@@ -50,8 +50,8 @@
     "file": "assets/firebase-BRk76dDo.js",
     "name": "firebase"
   },
-  "_motion-CaiKnluA.js": {
-    "file": "assets/motion-CaiKnluA.js",
+  "_motion-C-lKI21G.js": {
+    "file": "assets/motion-C-lKI21G.js",
     "name": "motion",
     "imports": [
       "index.html",
@@ -62,15 +62,15 @@
     "file": "assets/overlayPortal-BVn6YHNu.js",
     "name": "overlayPortal"
   },
-  "_transition-Chv1f_Yf.js": {
-    "file": "assets/transition-Chv1f_Yf.js",
+  "_transition-DyZxokMz.js": {
+    "file": "assets/transition-DyZxokMz.js",
     "name": "transition",
     "imports": [
       "index.html"
     ]
   },
   "index.html": {
-    "file": "assets/index-oycchslG.js",
+    "file": "assets/index-CoadUsfL.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -87,7 +87,7 @@
       "../@vite-plugin-pwa/virtual:pwa-register"
     ],
     "css": [
-      "assets/index-BaY1DdDL.css"
+      "assets/index-QO1tbzHX.css"
     ]
   },
   "node_modules/workbox-window/build/workbox-window.prod.es5.mjs": {
@@ -97,14 +97,14 @@
     "isDynamicEntry": true
   },
   "src/components/windows/AdminWindow.svelte": {
-    "file": "assets/AdminWindow-3xIsF8ob.js",
+    "file": "assets/AdminWindow-B9-0w22x.js",
     "name": "AdminWindow",
     "src": "src/components/windows/AdminWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
       "_firebase-BRk76dDo.js",
       "index.html",
-      "_motion-CaiKnluA.js",
+      "_motion-C-lKI21G.js",
       "_easing-_A3xgiwO.js",
       "_overlayPortal-BVn6YHNu.js"
     ],
@@ -113,73 +113,73 @@
     ]
   },
   "src/components/windows/StatsWindow.svelte": {
-    "file": "assets/StatsWindow-BbaYkxHZ.js",
+    "file": "assets/StatsWindow-B-6HvCjG.js",
     "name": "StatsWindow",
     "src": "src/components/windows/StatsWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
       "_overlayPortal-BVn6YHNu.js",
-      "_transition-Chv1f_Yf.js"
+      "_transition-DyZxokMz.js"
     ],
     "css": [
       "assets/StatsWindow-BXI-4gns.css"
     ]
   },
   "src/processes/balancing/BalancingProcess.svelte": {
-    "file": "assets/BalancingProcess-DAvwUniZ.js",
+    "file": "assets/BalancingProcess-BZLOkKO4.js",
     "name": "BalancingProcess",
     "src": "src/processes/balancing/BalancingProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_motion-CaiKnluA.js",
+      "_motion-C-lKI21G.js",
       "_easing-_A3xgiwO.js",
-      "_transition-Chv1f_Yf.js",
-      "_balancingLog-Bg6_luJp.js",
-      "_UpdatesBanner-iSu8EkXP.js"
+      "_transition-DyZxokMz.js",
+      "_balancingLog-lPTOJOGk.js",
+      "_UpdatesBanner-Df9dFX3s.js"
     ],
     "css": [
-      "assets/BalancingProcess-D_VjRznc.css"
+      "assets/BalancingProcess-oX3OCkgk.css"
     ]
   },
   "src/processes/balancing/balancingStats.js": {
-    "file": "assets/balancingStats-7Z2WyQYr.js",
+    "file": "assets/balancingStats-CzR00nQA.js",
     "name": "balancingStats",
     "src": "src/processes/balancing/balancingStats.js",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_balancingLog-Bg6_luJp.js"
+      "_balancingLog-lPTOJOGk.js"
     ]
   },
   "src/processes/induction_control/InductionControlProcess.svelte": {
-    "file": "assets/InductionControlProcess-Bc5o9fw6.js",
+    "file": "assets/InductionControlProcess-B2FWJxhl.js",
     "name": "InductionControlProcess",
     "src": "src/processes/induction_control/InductionControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_transition-Chv1f_Yf.js",
-      "_dayLog-qlappf5T.js",
-      "_UpdatesBanner-iSu8EkXP.js"
+      "_transition-DyZxokMz.js",
+      "_dayLog-D2WA8wcR.js",
+      "_UpdatesBanner-Df9dFX3s.js"
     ],
     "css": [
       "assets/InductionControlProcess-DrgjJVuf.css"
     ]
   },
   "src/processes/quality_control/QualityControlProcess.svelte": {
-    "file": "assets/QualityControlProcess-CySXs-NZ.js",
+    "file": "assets/QualityControlProcess-BmI9rMV6.js",
     "name": "QualityControlProcess",
     "src": "src/processes/quality_control/QualityControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "_firebase-BRk76dDo.js",
       "index.html",
-      "_motion-CaiKnluA.js",
+      "_motion-C-lKI21G.js",
       "_easing-_A3xgiwO.js",
-      "_transition-Chv1f_Yf.js",
-      "_UpdatesBanner-iSu8EkXP.js"
+      "_transition-DyZxokMz.js",
+      "_UpdatesBanner-Df9dFX3s.js"
     ],
     "css": [
       "assets/QualityControlProcess-CxUmVtKp.css"
