@@ -1,6 +1,6 @@
 {
   "../@vite-plugin-pwa/virtual:pwa-register": {
-    "file": "assets/virtual_pwa-register-DraTTS8V.js",
+    "file": "assets/virtual_pwa-register-BoOQYH0K.js",
     "name": "virtual_pwa-register",
     "src": "../@vite-plugin-pwa/virtual:pwa-register",
     "isDynamicEntry": true,
@@ -11,66 +11,57 @@
       "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
     ]
   },
-  "_UpdatesBanner-Df9dFX3s.js": {
-    "file": "assets/UpdatesBanner-Df9dFX3s.js",
-    "name": "UpdatesBanner",
+  "_BlockInfo-DMcAuKIa.js": {
+    "file": "assets/BlockInfo-DMcAuKIa.js",
+    "name": "BlockInfo",
     "imports": [
       "index.html",
-      "_easing-_A3xgiwO.js",
-      "_transition-DyZxokMz.js"
+      "_overlayPortal-BVn6YHNu.js"
     ],
     "css": [
-      "assets/UpdatesBanner-bsBLppbj.css"
+      "assets/BlockInfo-QMmiBz2R.css"
     ]
   },
-  "_UpdatesBanner-bsBLppbj.css": {
-    "file": "assets/UpdatesBanner-bsBLppbj.css",
-    "src": "_UpdatesBanner-bsBLppbj.css"
+  "_BlockInfo-QMmiBz2R.css": {
+    "file": "assets/BlockInfo-QMmiBz2R.css",
+    "src": "_BlockInfo-QMmiBz2R.css"
   },
-  "_balancingLog-lPTOJOGk.js": {
-    "file": "assets/balancingLog-lPTOJOGk.js",
+  "_balancingLog-CYap63Um.js": {
+    "file": "assets/balancingLog-CYap63Um.js",
     "name": "balancingLog",
     "imports": [
-      "_dayLog-D2WA8wcR.js"
+      "_dayLog-BBPexlkY.js"
     ]
   },
-  "_dayLog-D2WA8wcR.js": {
-    "file": "assets/dayLog-D2WA8wcR.js",
+  "_dayLog-BBPexlkY.js": {
+    "file": "assets/dayLog-BBPexlkY.js",
     "name": "dayLog",
     "imports": [
       "_firebase-BRk76dDo.js",
       "index.html"
     ]
   },
-  "_easing-_A3xgiwO.js": {
-    "file": "assets/easing-_A3xgiwO.js",
-    "name": "easing"
-  },
   "_firebase-BRk76dDo.js": {
     "file": "assets/firebase-BRk76dDo.js",
     "name": "firebase"
   },
-  "_motion-C-lKI21G.js": {
-    "file": "assets/motion-C-lKI21G.js",
+  "_motion-BLWdTkOf.js": {
+    "file": "assets/motion-BLWdTkOf.js",
     "name": "motion",
     "imports": [
-      "index.html",
-      "_easing-_A3xgiwO.js"
+      "index.html"
     ]
   },
   "_overlayPortal-BVn6YHNu.js": {
     "file": "assets/overlayPortal-BVn6YHNu.js",
     "name": "overlayPortal"
   },
-  "_transition-DyZxokMz.js": {
-    "file": "assets/transition-DyZxokMz.js",
-    "name": "transition",
-    "imports": [
-      "index.html"
-    ]
+  "_visualViewport-N_YG8mW6.js": {
+    "file": "assets/visualViewport-N_YG8mW6.js",
+    "name": "visualViewport"
   },
   "index.html": {
-    "file": "assets/index-CoadUsfL.js",
+    "file": "assets/index-C5-mNMYS.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
@@ -82,12 +73,14 @@
       "src/processes/balancing/balancingStats.js",
       "src/processes/quality_control/QualityControlProcess.svelte",
       "src/processes/induction_control/InductionControlProcess.svelte",
+      "src/seasonal/halloweenTheme.js",
       "src/components/windows/AdminWindow.svelte",
       "src/components/windows/StatsWindow.svelte",
+      "src/home/HomePage.svelte",
       "../@vite-plugin-pwa/virtual:pwa-register"
     ],
     "css": [
-      "assets/index-QO1tbzHX.css"
+      "assets/index-BDp2FpUi.css"
     ]
   },
   "node_modules/workbox-window/build/workbox-window.prod.es5.mjs": {
@@ -97,15 +90,14 @@
     "isDynamicEntry": true
   },
   "src/components/windows/AdminWindow.svelte": {
-    "file": "assets/AdminWindow-B9-0w22x.js",
+    "file": "assets/AdminWindow-BMzVQUmg.js",
     "name": "AdminWindow",
     "src": "src/components/windows/AdminWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
       "_firebase-BRk76dDo.js",
       "index.html",
-      "_motion-C-lKI21G.js",
-      "_easing-_A3xgiwO.js",
+      "_motion-BLWdTkOf.js",
       "_overlayPortal-BVn6YHNu.js"
     ],
     "css": [
@@ -113,76 +105,93 @@
     ]
   },
   "src/components/windows/StatsWindow.svelte": {
-    "file": "assets/StatsWindow-B-6HvCjG.js",
+    "file": "assets/StatsWindow-DUBOIkyX.js",
     "name": "StatsWindow",
     "src": "src/components/windows/StatsWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_overlayPortal-BVn6YHNu.js",
-      "_transition-DyZxokMz.js"
+      "_motion-BLWdTkOf.js",
+      "_BlockInfo-DMcAuKIa.js"
     ],
     "css": [
-      "assets/StatsWindow-BXI-4gns.css"
+      "assets/StatsWindow-B1Exe4o_.css"
+    ]
+  },
+  "src/home/HomePage.svelte": {
+    "file": "assets/HomePage-BGOsm2eF.js",
+    "name": "HomePage",
+    "src": "src/home/HomePage.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html"
+    ],
+    "css": [
+      "assets/HomePage-ZPGIFLDc.css"
     ]
   },
   "src/processes/balancing/BalancingProcess.svelte": {
-    "file": "assets/BalancingProcess-BZLOkKO4.js",
+    "file": "assets/BalancingProcess-ByxlC9cU.js",
     "name": "BalancingProcess",
     "src": "src/processes/balancing/BalancingProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_motion-C-lKI21G.js",
-      "_easing-_A3xgiwO.js",
-      "_transition-DyZxokMz.js",
-      "_balancingLog-lPTOJOGk.js",
-      "_UpdatesBanner-Df9dFX3s.js"
+      "_motion-BLWdTkOf.js",
+      "_BlockInfo-DMcAuKIa.js",
+      "_balancingLog-CYap63Um.js",
+      "_visualViewport-N_YG8mW6.js"
     ],
     "css": [
-      "assets/BalancingProcess-oX3OCkgk.css"
+      "assets/BalancingProcess-I1hgCcQz.css"
     ]
   },
   "src/processes/balancing/balancingStats.js": {
-    "file": "assets/balancingStats-CzR00nQA.js",
+    "file": "assets/balancingStats-BDnCeN79.js",
     "name": "balancingStats",
     "src": "src/processes/balancing/balancingStats.js",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_balancingLog-lPTOJOGk.js"
+      "_balancingLog-CYap63Um.js"
     ]
   },
   "src/processes/induction_control/InductionControlProcess.svelte": {
-    "file": "assets/InductionControlProcess-B2FWJxhl.js",
+    "file": "assets/InductionControlProcess-D4DQEn4G.js",
     "name": "InductionControlProcess",
     "src": "src/processes/induction_control/InductionControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "index.html",
-      "_transition-DyZxokMz.js",
-      "_dayLog-D2WA8wcR.js",
-      "_UpdatesBanner-Df9dFX3s.js"
+      "_dayLog-BBPexlkY.js",
+      "_visualViewport-N_YG8mW6.js"
     ],
     "css": [
       "assets/InductionControlProcess-DrgjJVuf.css"
     ]
   },
   "src/processes/quality_control/QualityControlProcess.svelte": {
-    "file": "assets/QualityControlProcess-BmI9rMV6.js",
+    "file": "assets/QualityControlProcess-BuGrDKDE.js",
     "name": "QualityControlProcess",
     "src": "src/processes/quality_control/QualityControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
       "_firebase-BRk76dDo.js",
       "index.html",
-      "_motion-C-lKI21G.js",
-      "_easing-_A3xgiwO.js",
-      "_transition-DyZxokMz.js",
-      "_UpdatesBanner-Df9dFX3s.js"
+      "_motion-BLWdTkOf.js",
+      "_visualViewport-N_YG8mW6.js"
     ],
     "css": [
       "assets/QualityControlProcess-CxUmVtKp.css"
+    ]
+  },
+  "src/seasonal/halloweenTheme.js": {
+    "file": "assets/halloweenTheme-CNaEJUnQ.js",
+    "name": "halloweenTheme",
+    "src": "src/seasonal/halloweenTheme.js",
+    "isDynamicEntry": true,
+    "css": [
+      "assets/halloweenTheme-BxFZ2O9d.css"
     ]
   }
 }
