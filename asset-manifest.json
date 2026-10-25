@@ -11,33 +11,33 @@
       "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
     ]
   },
-  "_BlockInfo-QMmiBz2R.css": {
-    "file": "assets/BlockInfo-QMmiBz2R.css",
-    "src": "_BlockInfo-QMmiBz2R.css"
-  },
-  "_BlockInfo-eH4nbqiB.js": {
-    "file": "assets/BlockInfo-eH4nbqiB.js",
+  "_BlockInfo-BQQXN8Vr.js": {
+    "file": "assets/BlockInfo-BQQXN8Vr.js",
     "name": "BlockInfo",
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "index.html"
     ],
     "css": [
       "assets/BlockInfo-QMmiBz2R.css"
     ]
   },
-  "_balancingLog-D-MPo8bV.js": {
-    "file": "assets/balancingLog-D-MPo8bV.js",
+  "_BlockInfo-QMmiBz2R.css": {
+    "file": "assets/BlockInfo-QMmiBz2R.css",
+    "src": "_BlockInfo-QMmiBz2R.css"
+  },
+  "_balancingLog-B491MLl3.js": {
+    "file": "assets/balancingLog-B491MLl3.js",
     "name": "balancingLog",
     "imports": [
-      "_dayLog-BCMVgLyG.js"
+      "_dayLog-ClXocqWv.js"
     ]
   },
-  "_dayLog-BCMVgLyG.js": {
-    "file": "assets/dayLog-BCMVgLyG.js",
+  "_dayLog-ClXocqWv.js": {
+    "file": "assets/dayLog-ClXocqWv.js",
     "name": "dayLog",
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "_firebase-CMIk-uMt.js",
       "index.html"
     ]
@@ -46,8 +46,8 @@
     "file": "assets/firebase-CMIk-uMt.js",
     "name": "firebase"
   },
-  "_localStore-CVldhcwS.js": {
-    "file": "assets/localStore-CVldhcwS.js",
+  "_localStore-2ZjnLG3k.js": {
+    "file": "assets/localStore-2ZjnLG3k.js",
     "name": "localStore",
     "imports": [
       "_preload-helper-uBIymjUX.js"
@@ -59,11 +59,11 @@
       "src/processes/induction_control/InductionControlProcess.svelte"
     ]
   },
-  "_motion-B9pm_BK4.js": {
-    "file": "assets/motion-B9pm_BK4.js",
+  "_motion-DsxIb-k7.js": {
+    "file": "assets/motion-DsxIb-k7.js",
     "name": "motion",
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "index.html"
     ]
   },
@@ -76,12 +76,12 @@
     "name": "visualViewport"
   },
   "index.html": {
-    "file": "assets/index-B_CJ_g9y.js",
+    "file": "assets/index-Cr4pH5VU.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "_firebase-CMIk-uMt.js",
       "_preload-helper-uBIymjUX.js"
     ],
@@ -103,42 +103,42 @@
     "isDynamicEntry": true
   },
   "src/components/windows/AdminWindow.svelte": {
-    "file": "assets/AdminWindow-DOxZz20r.js",
+    "file": "assets/AdminWindow-BpOxVbGT.js",
     "name": "AdminWindow",
     "src": "src/components/windows/AdminWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "_firebase-CMIk-uMt.js",
       "index.html",
-      "_motion-B9pm_BK4.js"
+      "_motion-DsxIb-k7.js"
     ],
     "css": [
       "assets/AdminWindow-D1DJpFX6.css"
     ]
   },
   "src/components/windows/StatsWindow.svelte": {
-    "file": "assets/StatsWindow-Ck_SxVHp.js",
+    "file": "assets/StatsWindow-aVt2j0tV.js",
     "name": "StatsWindow",
     "src": "src/components/windows/StatsWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "index.html",
-      "_motion-B9pm_BK4.js",
-      "_BlockInfo-eH4nbqiB.js"
+      "_motion-DsxIb-k7.js",
+      "_BlockInfo-BQQXN8Vr.js"
     ],
     "css": [
       "assets/StatsWindow-CbxhQCZX.css"
     ]
   },
   "src/home/HomePage.svelte": {
-    "file": "assets/HomePage--fcdEoK9.js",
+    "file": "assets/HomePage-kvyG4Ad8.js",
     "name": "HomePage",
     "src": "src/home/HomePage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "index.html"
     ],
     "css": [
@@ -146,16 +146,16 @@
     ]
   },
   "src/processes/balancing/BalancingProcess.svelte": {
-    "file": "assets/BalancingProcess-Cza4yQpG.js",
+    "file": "assets/BalancingProcess-5apy0viL.js",
     "name": "BalancingProcess",
     "src": "src/processes/balancing/BalancingProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "index.html",
-      "_motion-B9pm_BK4.js",
-      "_BlockInfo-eH4nbqiB.js",
-      "_balancingLog-D-MPo8bV.js",
+      "_motion-DsxIb-k7.js",
+      "_BlockInfo-BQQXN8Vr.js",
+      "_balancingLog-B491MLl3.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
@@ -163,24 +163,24 @@
     ]
   },
   "src/processes/balancing/balancingStats.js": {
-    "file": "assets/balancingStats-CEFU20Zc.js",
+    "file": "assets/balancingStats-Bq_AsxnL.js",
     "name": "balancingStats",
     "src": "src/processes/balancing/balancingStats.js",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
-      "_balancingLog-D-MPo8bV.js"
+      "_localStore-2ZjnLG3k.js",
+      "_balancingLog-B491MLl3.js"
     ]
   },
   "src/processes/induction_control/InductionControlProcess.svelte": {
-    "file": "assets/InductionControlProcess-DRo2q16X.js",
+    "file": "assets/InductionControlProcess-HHnucNd-.js",
     "name": "InductionControlProcess",
     "src": "src/processes/induction_control/InductionControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "index.html",
-      "_dayLog-BCMVgLyG.js",
+      "_dayLog-ClXocqWv.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
@@ -188,15 +188,15 @@
     ]
   },
   "src/processes/quality_control/QualityControlProcess.svelte": {
-    "file": "assets/QualityControlProcess-BNRfSJcc.js",
+    "file": "assets/QualityControlProcess-68gwxLNg.js",
     "name": "QualityControlProcess",
     "src": "src/processes/quality_control/QualityControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CVldhcwS.js",
+      "_localStore-2ZjnLG3k.js",
       "_firebase-CMIk-uMt.js",
       "index.html",
-      "_motion-B9pm_BK4.js",
+      "_motion-DsxIb-k7.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [

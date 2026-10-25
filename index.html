@@ -33,13 +33,21 @@
      through every CSS-only attempt. -->
 <meta name="apple-mobile-web-app-status-bar-style" content="black" />
 <meta name="apple-mobile-web-app-title" content="ShiftMe" />
-  <script type="module" crossorigin src="./assets/index-B_CJ_g9y.js"></script>
+<!-- Launch cover: the same background as the splash (App.css .splash), styled
+     inline so it is there on the very first paint, before any CSS/JS. main.js
+     hides it once the splash is mounted, and shows it again whenever the app
+     goes to the background — iOS photographs the screen at that moment and
+     flashes that photo on the next launch, so the "phantom frame" is this
+     cover (= the splash's background) instead of a stale page / lock screen. -->
+<style>#launch-cover{z-index:5000;pointer-events:none;opacity:1;background-color:#14171c;background-image:radial-gradient(circle at 15% 10%,#ff8c421a,#0000 45%),radial-gradient(circle at 85% 90%,#43c6ac17,#0000 45%);background-position:0 0;background-repeat:repeat;background-size:auto;background-attachment:scroll;background-origin:padding-box;background-clip:border-box;transition:opacity .25s;position:fixed;inset:0}#launch-cover.off{opacity:0}#launch-cover.gone{visibility:hidden}html{background:#14171c}</style>
+  <script type="module" crossorigin src="./assets/index-Cr4pH5VU.js"></script>
   <link rel="modulepreload" crossorigin href="./assets/preload-helper-uBIymjUX.js">
-  <link rel="modulepreload" crossorigin href="./assets/localStore-CVldhcwS.js">
+  <link rel="modulepreload" crossorigin href="./assets/localStore-2ZjnLG3k.js">
   <link rel="modulepreload" crossorigin href="./assets/firebase-CMIk-uMt.js">
   <link rel="stylesheet" crossorigin href="./assets/index-CGqKIkwj.css">
 <link rel="manifest" href="./manifest.webmanifest"></head>
 <body>
+<div id="launch-cover"></div>
 <div id="app"></div>
 </body>
 </html>
