@@ -11,11 +11,11 @@
       "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
     ]
   },
-  "_BlockInfo-BQQXN8Vr.js": {
-    "file": "assets/BlockInfo-BQQXN8Vr.js",
+  "_BlockInfo-0J51HCtQ.js": {
+    "file": "assets/BlockInfo-0J51HCtQ.js",
     "name": "BlockInfo",
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "index.html"
     ],
     "css": [
@@ -26,19 +26,20 @@
     "file": "assets/BlockInfo-QMmiBz2R.css",
     "src": "_BlockInfo-QMmiBz2R.css"
   },
-  "_balancingLog-B491MLl3.js": {
-    "file": "assets/balancingLog-B491MLl3.js",
+  "_balancingLog-B9VB3ZhH.js": {
+    "file": "assets/balancingLog-B9VB3ZhH.js",
     "name": "balancingLog",
     "imports": [
-      "_dayLog-ClXocqWv.js"
+      "_dayLog-Cz-4igBH.js"
     ]
   },
-  "_dayLog-ClXocqWv.js": {
-    "file": "assets/dayLog-ClXocqWv.js",
+  "_dayLog-Cz-4igBH.js": {
+    "file": "assets/dayLog-Cz-4igBH.js",
     "name": "dayLog",
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "_firebase-CMIk-uMt.js",
+      "_firebase-ngalauSp.js",
       "index.html"
     ]
   },
@@ -46,8 +47,15 @@
     "file": "assets/firebase-CMIk-uMt.js",
     "name": "firebase"
   },
-  "_localStore-2ZjnLG3k.js": {
-    "file": "assets/localStore-2ZjnLG3k.js",
+  "_firebase-ngalauSp.js": {
+    "file": "assets/firebase-ngalauSp.js",
+    "name": "firebase",
+    "imports": [
+      "_firebase-CMIk-uMt.js"
+    ]
+  },
+  "_localStore-CRMKBIJP.js": {
+    "file": "assets/localStore-CRMKBIJP.js",
     "name": "localStore",
     "imports": [
       "_preload-helper-uBIymjUX.js"
@@ -59,11 +67,11 @@
       "src/processes/induction_control/InductionControlProcess.svelte"
     ]
   },
-  "_motion-DsxIb-k7.js": {
-    "file": "assets/motion-DsxIb-k7.js",
+  "_motion-C3-Ph5fA.js": {
+    "file": "assets/motion-C3-Ph5fA.js",
     "name": "motion",
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "index.html"
     ]
   },
@@ -76,13 +84,14 @@
     "name": "visualViewport"
   },
   "index.html": {
-    "file": "assets/index-Cr4pH5VU.js",
+    "file": "assets/index-BKqRcSBg.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "_firebase-CMIk-uMt.js",
+      "_firebase-ngalauSp.js",
       "_preload-helper-uBIymjUX.js"
     ],
     "dynamicImports": [
@@ -90,10 +99,11 @@
       "src/components/windows/AdminWindow.svelte",
       "src/components/windows/StatsWindow.svelte",
       "src/home/HomePage.svelte",
+      "src/components/LockScreen.svelte",
       "../@vite-plugin-pwa/virtual:pwa-register"
     ],
     "css": [
-      "assets/index-CGqKIkwj.css"
+      "assets/index-B5v9kQcy.css"
     ]
   },
   "node_modules/workbox-window/build/workbox-window.prod.es5.mjs": {
@@ -102,43 +112,57 @@
     "src": "node_modules/workbox-window/build/workbox-window.prod.es5.mjs",
     "isDynamicEntry": true
   },
+  "src/components/LockScreen.svelte": {
+    "file": "assets/LockScreen-BF9pAAxY.js",
+    "name": "LockScreen",
+    "src": "src/components/LockScreen.svelte",
+    "isDynamicEntry": true,
+    "imports": [
+      "_localStore-CRMKBIJP.js",
+      "index.html"
+    ],
+    "css": [
+      "assets/LockScreen-Ck5ejMP1.css"
+    ]
+  },
   "src/components/windows/AdminWindow.svelte": {
-    "file": "assets/AdminWindow-BpOxVbGT.js",
+    "file": "assets/AdminWindow-CwEhMy9W.js",
     "name": "AdminWindow",
     "src": "src/components/windows/AdminWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "_firebase-CMIk-uMt.js",
+      "_firebase-ngalauSp.js",
       "index.html",
-      "_motion-DsxIb-k7.js"
+      "_motion-C3-Ph5fA.js"
     ],
     "css": [
       "assets/AdminWindow-D1DJpFX6.css"
     ]
   },
   "src/components/windows/StatsWindow.svelte": {
-    "file": "assets/StatsWindow-aVt2j0tV.js",
+    "file": "assets/StatsWindow-Bh_r-OoV.js",
     "name": "StatsWindow",
     "src": "src/components/windows/StatsWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "index.html",
-      "_motion-DsxIb-k7.js",
-      "_BlockInfo-BQQXN8Vr.js"
+      "_motion-C3-Ph5fA.js",
+      "_BlockInfo-0J51HCtQ.js"
     ],
     "css": [
       "assets/StatsWindow-CbxhQCZX.css"
     ]
   },
   "src/home/HomePage.svelte": {
-    "file": "assets/HomePage-kvyG4Ad8.js",
+    "file": "assets/HomePage-1OpbyqbW.js",
     "name": "HomePage",
     "src": "src/home/HomePage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "index.html"
     ],
     "css": [
@@ -146,16 +170,16 @@
     ]
   },
   "src/processes/balancing/BalancingProcess.svelte": {
-    "file": "assets/BalancingProcess-5apy0viL.js",
+    "file": "assets/BalancingProcess-BY5Yb9C3.js",
     "name": "BalancingProcess",
     "src": "src/processes/balancing/BalancingProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "index.html",
-      "_motion-DsxIb-k7.js",
-      "_BlockInfo-BQQXN8Vr.js",
-      "_balancingLog-B491MLl3.js",
+      "_motion-C3-Ph5fA.js",
+      "_BlockInfo-0J51HCtQ.js",
+      "_balancingLog-B9VB3ZhH.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
@@ -163,24 +187,24 @@
     ]
   },
   "src/processes/balancing/balancingStats.js": {
-    "file": "assets/balancingStats-Bq_AsxnL.js",
+    "file": "assets/balancingStats-BjRI9uCg.js",
     "name": "balancingStats",
     "src": "src/processes/balancing/balancingStats.js",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
-      "_balancingLog-B491MLl3.js"
+      "_localStore-CRMKBIJP.js",
+      "_balancingLog-B9VB3ZhH.js"
     ]
   },
   "src/processes/induction_control/InductionControlProcess.svelte": {
-    "file": "assets/InductionControlProcess-HHnucNd-.js",
+    "file": "assets/InductionControlProcess-DG-1LYRE.js",
     "name": "InductionControlProcess",
     "src": "src/processes/induction_control/InductionControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "index.html",
-      "_dayLog-ClXocqWv.js",
+      "_dayLog-Cz-4igBH.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
@@ -188,15 +212,16 @@
     ]
   },
   "src/processes/quality_control/QualityControlProcess.svelte": {
-    "file": "assets/QualityControlProcess-68gwxLNg.js",
+    "file": "assets/QualityControlProcess-DNlYzrH6.js",
     "name": "QualityControlProcess",
     "src": "src/processes/quality_control/QualityControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-2ZjnLG3k.js",
+      "_localStore-CRMKBIJP.js",
       "_firebase-CMIk-uMt.js",
+      "_firebase-ngalauSp.js",
       "index.html",
-      "_motion-DsxIb-k7.js",
+      "_motion-C3-Ph5fA.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
