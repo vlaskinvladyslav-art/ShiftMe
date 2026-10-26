@@ -11,11 +11,11 @@
       "node_modules/workbox-window/build/workbox-window.prod.es5.mjs"
     ]
   },
-  "_BlockInfo-0J51HCtQ.js": {
-    "file": "assets/BlockInfo-0J51HCtQ.js",
+  "_BlockInfo-ChUINALX.js": {
+    "file": "assets/BlockInfo-ChUINALX.js",
     "name": "BlockInfo",
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html"
     ],
     "css": [
@@ -26,18 +26,18 @@
     "file": "assets/BlockInfo-QMmiBz2R.css",
     "src": "_BlockInfo-QMmiBz2R.css"
   },
-  "_balancingLog-B9VB3ZhH.js": {
-    "file": "assets/balancingLog-B9VB3ZhH.js",
+  "_balancingLog-qSd1TAFJ.js": {
+    "file": "assets/balancingLog-qSd1TAFJ.js",
     "name": "balancingLog",
     "imports": [
-      "_dayLog-Cz-4igBH.js"
+      "_dayLog-BT6XNEAM.js"
     ]
   },
-  "_dayLog-Cz-4igBH.js": {
-    "file": "assets/dayLog-Cz-4igBH.js",
+  "_dayLog-BT6XNEAM.js": {
+    "file": "assets/dayLog-BT6XNEAM.js",
     "name": "dayLog",
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "_firebase-CMIk-uMt.js",
       "_firebase-ngalauSp.js",
       "index.html"
@@ -54,8 +54,8 @@
       "_firebase-CMIk-uMt.js"
     ]
   },
-  "_localStore-CRMKBIJP.js": {
-    "file": "assets/localStore-CRMKBIJP.js",
+  "_localStore-BxmdoaQ_.js": {
+    "file": "assets/localStore-BxmdoaQ_.js",
     "name": "localStore",
     "imports": [
       "_preload-helper-uBIymjUX.js"
@@ -67,11 +67,11 @@
       "src/processes/induction_control/InductionControlProcess.svelte"
     ]
   },
-  "_motion-C3-Ph5fA.js": {
-    "file": "assets/motion-C3-Ph5fA.js",
+  "_motion-BnjhDVrx.js": {
+    "file": "assets/motion-BnjhDVrx.js",
     "name": "motion",
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html"
     ]
   },
@@ -84,12 +84,12 @@
     "name": "visualViewport"
   },
   "index.html": {
-    "file": "assets/index-BKqRcSBg.js",
+    "file": "assets/index-DT52o5tE.js",
     "name": "index",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "_firebase-CMIk-uMt.js",
       "_firebase-ngalauSp.js",
       "_preload-helper-uBIymjUX.js"
@@ -113,56 +113,56 @@
     "isDynamicEntry": true
   },
   "src/components/LockScreen.svelte": {
-    "file": "assets/LockScreen-BF9pAAxY.js",
+    "file": "assets/LockScreen-DqwqgEsm.js",
     "name": "LockScreen",
     "src": "src/components/LockScreen.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html"
     ],
     "css": [
-      "assets/LockScreen-Ck5ejMP1.css"
+      "assets/LockScreen-CgjxxNv4.css"
     ]
   },
   "src/components/windows/AdminWindow.svelte": {
-    "file": "assets/AdminWindow-CwEhMy9W.js",
+    "file": "assets/AdminWindow-DA_c2MY6.js",
     "name": "AdminWindow",
     "src": "src/components/windows/AdminWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "_firebase-CMIk-uMt.js",
       "_firebase-ngalauSp.js",
       "index.html",
-      "_motion-C3-Ph5fA.js"
+      "_motion-BnjhDVrx.js"
     ],
     "css": [
       "assets/AdminWindow-D1DJpFX6.css"
     ]
   },
   "src/components/windows/StatsWindow.svelte": {
-    "file": "assets/StatsWindow-Bh_r-OoV.js",
+    "file": "assets/StatsWindow-BSCVorAS.js",
     "name": "StatsWindow",
     "src": "src/components/windows/StatsWindow.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html",
-      "_motion-C3-Ph5fA.js",
-      "_BlockInfo-0J51HCtQ.js"
+      "_motion-BnjhDVrx.js",
+      "_BlockInfo-ChUINALX.js"
     ],
     "css": [
       "assets/StatsWindow-CbxhQCZX.css"
     ]
   },
   "src/home/HomePage.svelte": {
-    "file": "assets/HomePage-1OpbyqbW.js",
+    "file": "assets/HomePage-UUGcVd9R.js",
     "name": "HomePage",
     "src": "src/home/HomePage.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html"
     ],
     "css": [
@@ -170,16 +170,16 @@
     ]
   },
   "src/processes/balancing/BalancingProcess.svelte": {
-    "file": "assets/BalancingProcess-BY5Yb9C3.js",
+    "file": "assets/BalancingProcess-C1TVzrdG.js",
     "name": "BalancingProcess",
     "src": "src/processes/balancing/BalancingProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html",
-      "_motion-C3-Ph5fA.js",
-      "_BlockInfo-0J51HCtQ.js",
-      "_balancingLog-B9VB3ZhH.js",
+      "_motion-BnjhDVrx.js",
+      "_BlockInfo-ChUINALX.js",
+      "_balancingLog-qSd1TAFJ.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
@@ -187,24 +187,24 @@
     ]
   },
   "src/processes/balancing/balancingStats.js": {
-    "file": "assets/balancingStats-BjRI9uCg.js",
+    "file": "assets/balancingStats-6VziWgCq.js",
     "name": "balancingStats",
     "src": "src/processes/balancing/balancingStats.js",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
-      "_balancingLog-B9VB3ZhH.js"
+      "_localStore-BxmdoaQ_.js",
+      "_balancingLog-qSd1TAFJ.js"
     ]
   },
   "src/processes/induction_control/InductionControlProcess.svelte": {
-    "file": "assets/InductionControlProcess-DG-1LYRE.js",
+    "file": "assets/InductionControlProcess-CL1uG_xZ.js",
     "name": "InductionControlProcess",
     "src": "src/processes/induction_control/InductionControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "index.html",
-      "_dayLog-Cz-4igBH.js",
+      "_dayLog-BT6XNEAM.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
@@ -212,16 +212,16 @@
     ]
   },
   "src/processes/quality_control/QualityControlProcess.svelte": {
-    "file": "assets/QualityControlProcess-DNlYzrH6.js",
+    "file": "assets/QualityControlProcess-jiCx7ziz.js",
     "name": "QualityControlProcess",
     "src": "src/processes/quality_control/QualityControlProcess.svelte",
     "isDynamicEntry": true,
     "imports": [
-      "_localStore-CRMKBIJP.js",
+      "_localStore-BxmdoaQ_.js",
       "_firebase-CMIk-uMt.js",
       "_firebase-ngalauSp.js",
       "index.html",
-      "_motion-C3-Ph5fA.js",
+      "_motion-BnjhDVrx.js",
       "_visualViewport-DnBgT_D3.js"
     ],
     "css": [
